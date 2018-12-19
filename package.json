@@ -1,0 +1,20 @@
+{
+  "name": "@it-quasar/reactive-forms",
+  "version": "1.0.0",
+  "description": "Native RxJs forms",
+  "main": "index.js",
+  "repository": "https://github.com/it-quasar/reactive-forms.git",
+  "author": "Pavel Puchkov <0x6368656174@gmail.com>",
+  "license": "LGPL-3.0-only",
+  "devDependencies": {
+    "prettier": "^1.15.3",
+    "tslint": "^5.12.0",
+    "typescript": "^3.2.2"
+  },
+  "husky": {
+    "hooks": {
+      "post-commit": "git update-index --again",
+      "pre-commit": "lint-staged"
+    }
+  }
+}
