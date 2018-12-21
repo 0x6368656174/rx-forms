@@ -1,0 +1,27 @@
+<html>
+<head>
+    <title>Test</title>
+</head>
+
+<body>
+<rx-text-input name="phone"
+               validator-required
+               validator-pattern="/\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}/"
+               mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']">
+    <label>
+        Телефон
+
+        <input>
+    </label>
+
+    <rx-validation-error validator="required">Данное поле обезательно</rx-validation-error>
+    <rx-validation-error validator="pattern">Введите номер телефона</rx-validation-error>
+</rx-text-input>
+
+<script src="./dist/rx-forms.cjs.js.js"></script>
+<script>
+    document.querySelector('rx-text-input[name="phone"]').value.subscribe(v => console.log(`Phone: ${v}`));
+    document.querySelector('rx-text-input[name="phone"]').valid.subscribe(v => console.log(`Phone valid: ${v}`));
+</script>
+</body>
+</html>

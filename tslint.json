@@ -2,6 +2,8 @@
   "extends": ["tslint:recommended"],
   "rules": {
     "arrow-parens": [true, "ban-single-arg-parens"],
-    "quotemark": [true, "single"]
+    "quotemark": [true, "single"],
+    "member-access": [true, "no-public"],
+    "interface-name": [true, "never-prefix"]
   }
 }

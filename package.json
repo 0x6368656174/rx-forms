@@ -1,13 +1,25 @@
 {
-  "name": "@it-quasar/reactive-forms",
+  "name": "@it-quasar/rx-forms",
   "version": "1.0.0",
   "description": "Native RxJs forms",
-  "main": "index.js",
+  "main": "dist/rx-forms.cjs.js",
+  "module": "dist/rx-forms.es5.js",
+  "typings": "dist/types/rx-forms.d.ts",
   "repository": "https://github.com/it-quasar/reactive-forms.git",
   "author": "Pavel Puchkov <0x6368656174@gmail.com>",
   "license": "LGPL-3.0-only",
   "devDependencies": {
+    "@types/json5": "^0.0.30",
+    "@types/lodash": "^4.14.119",
+    "lodash": "^4.17.11",
     "prettier": "^1.15.3",
+    "rollup": "^0.68.1",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-json": "^3.1.0",
+    "rollup-plugin-node-resolve": "^4.0.0",
+    "rollup-plugin-sourcemaps": "^0.4.2",
+    "rollup-plugin-typescript2": "^0.18.1",
+    "text-mask-core": "^5.1.2",
     "tslint": "^5.12.0",
     "typescript": "^3.2.2"
   },
@@ -16,5 +28,9 @@
       "post-commit": "git update-index --again",
       "pre-commit": "lint-staged"
     }
+  },
+  "dependencies": {
+    "json5": "^2.1.0",
+    "rxjs": "^6.3.3"
   }
 }
