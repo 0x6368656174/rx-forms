@@ -1,18 +1,21 @@
-import { AbstractControl } from './abstract-control';
+import { parse } from 'json5';
+import { endsWith, isString, startsWith } from 'lodash';
 import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
 import { distinctUntilChanged, map, pairwise, shareReplay } from 'rxjs/operators';
-import { startsWith, endsWith, isString} from 'lodash';
-import {parse} from 'json5';
-import { Validators } from './validators';
-import { pattern } from './validator-pattern';
 import { createTextMaskInputElement, TextMaskInputElement } from 'text-mask-core';
+import { AbstractControl } from './abstract-control';
+import { pattern } from './validator-pattern';
+import { Validators } from './validators';
 
 export class TextInput extends AbstractControl<string> {
+  static get observedAttributes() {
+    return [...AbstractControl.observedAttributes, 'validator-pattern', 'mask'];
+  }
   value: Observable<string>;
 
   protected value$ = new BehaviorSubject<string>('');
-  private mask$ = new BehaviorSubject<Array<string|RegExp>|null>(null);
-  private textInputMaskElement$: Observable<TextMaskInputElement|null>;
+  private mask$ = new BehaviorSubject<Array<string | RegExp> | null>(null);
+  private textInputMaskElement$: Observable<TextMaskInputElement | null>;
 
   private input: HTMLInputElement;
 
@@ -32,8 +35,7 @@ export class TextInput extends AbstractControl<string> {
     this.input = foundInput;
     // this.input.addEventListener('keydown', event => console.log(this.input.value));
 
-    this.name$.asObservable()
-      .subscribe(name => this.input.setAttribute('name', name));
+    this.name$.asObservable().subscribe(name => this.input.setAttribute('name', name));
 
     this.textInputMaskElement$ = this.mask$.asObservable().pipe(
       map(mask => {
@@ -60,11 +62,38 @@ export class TextInput extends AbstractControl<string> {
     });
   }
 
-  setMask(mask: Array<string|RegExp>|null): void {
+  setMask(mask: Array<string | RegExp> | null): void {
     this.mask$.next(mask);
   }
 
-  private updateMaskAttribute(mask: string|null): void {
+  setPatternValidator(regExp: RegExp | null) {
+    if (!regExp) {
+      this.removeValidator(Validators.Pattern);
+    }
+
+    if (regExp) {
+      this.setValidator(Validators.Pattern, pattern(this, regExp));
+    }
+  }
+
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (newValue === oldValue) {
+      return;
+    }
+
+    switch (name) {
+      case 'mask':
+        this.updateMaskAttribute(newValue);
+        break;
+      case 'validator-pattern':
+        this.updateValidationPatternAttribute(newValue);
+        break;
+      default:
+        super.attributeChangedCallback(name, oldValue, newValue);
+    }
+  }
+
+  private updateMaskAttribute(mask: string | null): void {
     if (mask === null) {
       this.setMask(null);
       return;
@@ -73,13 +102,18 @@ export class TextInput extends AbstractControl<string> {
     let maskStringArray: string[];
     try {
       maskStringArray = parse(`{mask: ${mask.replace(/\\/g, '\\\\')}}`).mask;
-
     } catch (e) {
-      throw new Error(`Error on parse mask "${mask}", check syntax. Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`);
+      throw new Error(
+        `Error on parse mask "${mask}", check syntax. ` +
+          `Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`,
+      );
     }
 
     if (maskStringArray.some(element => !isString(element))) {
-      throw new Error(`Error on parse mask "${mask}", check syntax. Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`);
+      throw new Error(
+        `Error on parse mask "${mask}", check syntax. ` +
+          `Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`,
+      );
     }
 
     const maskArray = maskStringArray.map((element: string) => {
@@ -93,17 +127,7 @@ export class TextInput extends AbstractControl<string> {
     this.setMask(maskArray);
   }
 
-  setPatternValidator(regExp: RegExp|null) {
-    if (!regExp) {
-      this.removeValidator(Validators.Pattern);
-    }
-
-    if (regExp) {
-      this.setValidator(Validators.Pattern, pattern(this, regExp));
-    }
-  }
-
-  private updateValidationPatternAttribute(validationPatter: string|null): void {
+  private updateValidationPatternAttribute(validationPatter: string | null): void {
     if (validationPatter) {
       let regExp: RegExp;
       if (startsWith(validationPatter, '/') && endsWith(validationPatter, '/')) {
@@ -115,26 +139,6 @@ export class TextInput extends AbstractControl<string> {
       this.setPatternValidator(regExp);
     } else {
       this.setPatternValidator(null);
-    }
-  }
-
-  static get observedAttributes() {
-    return [
-      ...AbstractControl.observedAttributes,
-      'validator-pattern',
-      'mask',
-    ];
-  }
-
-  attributeChangedCallback(name: string, oldValue: string|null, newValue: string|null): void {
-    if (newValue === oldValue) {
-      return;
-    }
-
-    switch (name) {
-      case 'mask': this.updateMaskAttribute(newValue); break;
-      case 'validator-pattern': this.updateValidationPatternAttribute(newValue); break;
-      default: super.attributeChangedCallback(name, oldValue, newValue);
     }
   }
 }

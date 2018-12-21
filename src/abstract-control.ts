@@ -7,6 +7,9 @@ type Validators = Map<string, Observable<boolean>>;
  * Контрол формы
  */
 export abstract class AbstractControl<T> extends HTMLElement {
+  static get observedAttributes() {
+    return ['name'];
+  }
   /** Значение контрола */
   abstract value: Observable<T>;
   /** Признак того, что контрол проходит валидацию */
@@ -53,9 +56,7 @@ export abstract class AbstractControl<T> extends HTMLElement {
     this.validationErrors = this.validators$.asObservable().pipe(
       switchMap(validators => {
         const validators$ = Array.from(validators).map(([name, validator]) => {
-          return validator.pipe(
-            map(valid => valid ? null : name),
-          );
+          return validator.pipe(map(valid => (valid ? null : name)));
         });
         return combineLatest(validators$);
       }),
@@ -70,28 +71,16 @@ export abstract class AbstractControl<T> extends HTMLElement {
     }
   }
 
-  static get observedAttributes() {
-    return [
-      'name',
-    ];
-  }
-
-  attributeChangedCallback(name: string, oldValue: string|null, newValue: string|null): void {
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
     }
 
     switch (name) {
-      case 'name': this.updateName(newValue); break;
+      case 'name':
+        this.updateName(newValue);
+        break;
     }
-  }
-
-  private updateName(name: string|null): void {
-    if (!name) {
-      throw new Error('Attribute "name" for rx-forms controls is required');
-    }
-
-    this.name$.next(name);
   }
 
   /**
@@ -135,5 +124,13 @@ export abstract class AbstractControl<T> extends HTMLElement {
 
   protected martAsDirty(): void {
     this.pristine$.next(false);
+  }
+
+  private updateName(name: string | null): void {
+    if (!name) {
+      throw new Error('Attribute "name" for rx-forms controls is required');
+    }
+
+    this.name$.next(name);
   }
 }
