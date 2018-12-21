@@ -1,24 +1,57 @@
+import { isEqual } from 'lodash';
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { map, shareReplay, switchMap } from 'rxjs/operators';
+import { distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs/operators';
 import { CustomElement } from './custom-element';
+import { updateAttribute } from './utils';
 
 type Validators = Map<string, Observable<boolean>>;
+
+export enum AbstractControlAttributes {
+  Name = 'name',
+  ValidatorRequired = 'validator-required',
+}
 
 /**
  * Контрол формы
  */
 export abstract class AbstractControl<T> extends HTMLElement implements CustomElement {
-  /** @internal */
-  static get observedAttributes() {
-    return ['name'];
+  /**
+   * Значение контрола
+   */
+  get value(): Observable<T> {
+    return this.value$.pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
-  private static throwNameAttributeRequired(): Error {
-    return new Error('Attribute "name" for rx-forms controls is required');
+  /**
+   * Признак того, чтоле обязательное
+   */
+  get validatorRequired(): Observable<boolean> {
+    return this.validatorRequired$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
-  /** Значение контрола */
-  abstract value: Observable<T>;
+  /**
+   * Имя
+   */
+  get name(): Observable<string> {
+    return this.name$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
+  }
+  static observedAttributes: string[] = [AbstractControlAttributes.Name, AbstractControlAttributes.ValidatorRequired];
+
+  private static throwAttributeNameRequired(): Error {
+    return new Error(`Attribute "${AbstractControlAttributes.Name}" for any rx-forms controls is required`);
+  }
+
+  // /** Значение контрола */
+  // abstract value: Observable<T>;
   /** Признак того, что контрол проходит валидацию */
   valid: Observable<boolean>;
   /** Признак того, что контрол не проходит валидацию */
@@ -39,6 +72,7 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   protected untouched$ = new BehaviorSubject(true);
   protected validators$ = new BehaviorSubject<Validators>(new Map());
   protected name$ = new BehaviorSubject<string>('');
+  protected validatorRequired$ = new BehaviorSubject<boolean>(false);
 
   protected constructor() {
     super();
@@ -73,9 +107,11 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
       shareReplay(1),
     );
 
-    if (!this.hasAttribute('name')) {
-      throw AbstractControl.throwNameAttributeRequired();
+    if (!this.hasAttribute(AbstractControlAttributes.Name)) {
+      throw AbstractControl.throwAttributeNameRequired();
     }
+
+    this.bindBaseObservablesToAttributes();
   }
 
   /** @internal */
@@ -85,19 +121,35 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
     }
 
     switch (name) {
-      case 'name':
-        this.updateNameAttribute(newValue);
+      case AbstractControlAttributes.Name:
+        if (!newValue) {
+          throw AbstractControl.throwAttributeNameRequired();
+        }
+
+        this.name$.next(newValue);
+        break;
+      case AbstractControlAttributes.ValidatorRequired:
+        this.validatorRequired$.next(newValue !== null);
         break;
     }
   }
 
   /**
-   * Устанавлиает значение контрола
+   * Устанавлиает значени контрола
    *
-   * @param value Значение контрола
+   * @param value Значение
    */
-  setValue(value: T): void {
+  setValue(value: T) {
     this.value$.next(value);
+  }
+
+  /**
+   * Устанавлиает признак того, что поле обязательное
+   *
+   * @param required Признак того, что поле обязательное
+   */
+  setValidatorRequired(required: boolean) {
+    this.validatorRequired$.next(required);
   }
 
   /**
@@ -127,11 +179,11 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   }
 
   /**
-   * Устанавливает имя
+   * Устанавлиает имя
    *
    * @param name Имя
    */
-  setName(name: string): void {
+  setName(name: string) {
     this.name$.next(name);
   }
 
@@ -143,11 +195,17 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
     this.pristine$.next(false);
   }
 
-  private updateNameAttribute(name: string | null): void {
-    if (!name) {
-      throw AbstractControl.throwNameAttributeRequired();
-    }
+  protected updateAttribute(attribute: string, value: string | null): void {
+    updateAttribute(this, attribute, value);
+  }
 
-    this.setName(name);
+  private bindBaseObservablesToAttributes(): void {
+    this.name$.asObservable().subscribe(name => {
+      this.updateAttribute(AbstractControlAttributes.Name, name);
+    });
+
+    this.validatorRequired$.asObservable().subscribe(required => {
+      this.updateAttribute(AbstractControlAttributes.ValidatorRequired, required ? '' : null);
+    });
   }
 }

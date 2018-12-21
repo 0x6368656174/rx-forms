@@ -41,7 +41,8 @@ module.exports = {
         'node_modules/lodash/lodash.js': [
           'startsWith',
           'endsWith',
-          'isString'
+          'isString',
+          'isEqual',
         ],
         'node_modules/json5/lib/index.js': [
           'parse',

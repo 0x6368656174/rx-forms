@@ -1,19 +1,33 @@
-import { BehaviorSubject, combineLatest, Subject } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
+import { isEqual } from 'lodash';
+import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { AbstractControl } from './abstract-control';
 import { CustomElement } from './custom-element';
 import { RxTextInput } from './rx-text-input';
+import { updateAttribute } from './utils';
+
+export enum RxValidationErrorAttributes {
+  Validator = 'validator',
+}
 
 export class RxValidationError extends HTMLElement implements CustomElement {
-  /** @internal */
-  static get observedAttributes() {
-    return ['validator'];
+  /**
+   * Валидатор
+   */
+  get validator(): Observable<string> {
+    return this.validator$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
+  static observedAttributes = [RxValidationErrorAttributes.Validator];
   static tagName = 'rx-validation-error';
   private static controls: string[] = [RxTextInput.tagName];
 
   private static throwAttributeValidatorRequired(): Error {
-    return new Error('Attribute "validator" for rx-validation-error element is required');
+    return new Error(
+      `Attribute "${RxValidationErrorAttributes.Validator}"` + ` for <${RxValidationError.tagName}> is required`,
+    );
   }
 
   private validator$ = new BehaviorSubject<string>('');
@@ -22,9 +36,11 @@ export class RxValidationError extends HTMLElement implements CustomElement {
   constructor() {
     super();
 
-    if (!this.hasAttribute('validator')) {
+    if (!this.hasAttribute(RxValidationErrorAttributes.Validator)) {
       throw RxValidationError.throwAttributeValidatorRequired();
     }
+
+    this.bindObservablesToAttributes();
   }
 
   /**
@@ -42,17 +58,28 @@ export class RxValidationError extends HTMLElement implements CustomElement {
     }
 
     switch (name) {
-      case 'validator':
-        this.updateValidatorAttribute(newValue);
+      case RxValidationErrorAttributes.Validator:
+        if (!newValue) {
+          throw RxValidationError.throwAttributeValidatorRequired();
+        }
+
+        this.validator$.next(newValue);
         break;
     }
   }
 
   connectedCallback() {
     const parentControl = this.findParentControl();
-    combineLatest(this.validator$, parentControl.validationErrors)
+    combineLatest(this.validator$, parentControl.validationErrors, parentControl.dirty, parentControl.touched)
       .pipe(
-        map(([validator, validationErrors]) => validationErrors.indexOf(validator) !== -1),
+        map(([validator, validationErrors, dirty, touched]) => {
+          // Если контрол не меняли, то ошибка валидации отображена не долна быть
+          if (!dirty && !touched) {
+            return false;
+          }
+
+          return validationErrors.indexOf(validator) !== -1;
+        }),
         takeUntil(this.unsubscribe$),
       )
       .subscribe(visible => {
@@ -70,12 +97,10 @@ export class RxValidationError extends HTMLElement implements CustomElement {
     this.unsubscribe$.next();
   }
 
-  private updateValidatorAttribute(name: string | null): void {
-    if (!name) {
-      throw RxValidationError.throwAttributeValidatorRequired();
-    }
-
-    this.setValidator(name);
+  private bindObservablesToAttributes(): void {
+    this.validator$.asObservable().subscribe(validator => {
+      updateAttribute(this, RxValidationErrorAttributes.Validator, validator);
+    });
   }
 
   private findParentControl(): AbstractControl<any> {

@@ -2,19 +2,22 @@
 <head>
     <title>Test</title>
     <style>
+        .rx-validation-error--hidden {
+            display: none;
+        }
+
         .rx-validation-error--visible {
             display: block;
         }
 
-        .rx-validation-error--hidden {
-            display: none;
-        }
+        /*.rx-validation-error--visible ~ .rx-validation-error--visible {*/
+            /*display: none;*/
+        /*}*/
     </style>
 </head>
 
 <body>
 <rx-text-input name="phone"
-               error-show-rule="first"
                validator-required
                validator-pattern="/\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}/"
                mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']">
