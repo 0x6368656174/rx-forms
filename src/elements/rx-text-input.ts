@@ -1,15 +1,15 @@
 import { parse } from 'json5';
 import { endsWith, isString, startsWith } from 'lodash';
 import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
-import { distinctUntilChanged, map, pairwise, shareReplay } from 'rxjs/operators';
+import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { createTextMaskInputElement, TextMaskInputElement } from 'text-mask-core';
+import { pattern, Validators } from '../validators';
 import { AbstractControl } from './abstract-control';
-import { pattern } from './validator-pattern';
-import { Validators } from './validators';
 
-export class TextInput extends AbstractControl<string> {
+export class RxTextInput extends AbstractControl<string> {
+  static tagName: string = 'rx-text-input';
   static get observedAttributes() {
-    return [...AbstractControl.observedAttributes, 'validator-pattern', 'mask'];
+    return [...AbstractControl.observedAttributes, 'validator-pattern', 'validator-required', 'mask'];
   }
   value: Observable<string>;
 
@@ -29,11 +29,10 @@ export class TextInput extends AbstractControl<string> {
 
     const foundInput = this.querySelector('input');
     if (!foundInput) {
-      throw new Error('<rx-text-input> not found child <input>');
+      throw new Error(`<${RxTextInput.tagName}> not found child <input>`);
     }
 
     this.input = foundInput;
-    // this.input.addEventListener('keydown', event => console.log(this.input.value));
 
     this.name$.asObservable().subscribe(name => this.input.setAttribute('name', name));
 
@@ -51,7 +50,7 @@ export class TextInput extends AbstractControl<string> {
     );
 
     const onInput$ = fromEvent(this.input, 'input');
-    combineLatest(onInput$, this.textInputMaskElement$).subscribe(([event, textInputMaskElement]) => {
+    combineLatest(onInput$, this.textInputMaskElement$).subscribe(([_, textInputMaskElement]) => {
       if (textInputMaskElement === null) {
         this.value$.next(this.input.value);
         return;
@@ -66,13 +65,21 @@ export class TextInput extends AbstractControl<string> {
     this.mask$.next(mask);
   }
 
-  setPatternValidator(regExp: RegExp | null) {
+  setPatternValidator(regExp: RegExp | null): void {
     if (!regExp) {
       this.removeValidator(Validators.Pattern);
-    }
-
-    if (regExp) {
+    } else {
       this.setValidator(Validators.Pattern, pattern(this, regExp));
+    }
+  }
+
+  setRequiredValidator(required: boolean): void {
+    if (!required) {
+      this.removeValidator(Validators.Required);
+    } else {
+      const validator = this.value.pipe(map(value => value !== ''));
+
+      this.setValidator(Validators.Required, validator);
     }
   }
 
@@ -87,6 +94,9 @@ export class TextInput extends AbstractControl<string> {
         break;
       case 'validator-pattern':
         this.updateValidationPatternAttribute(newValue);
+        break;
+      case 'validator-required':
+        this.updateValidationRequiredAttribute(newValue);
         break;
       default:
         super.attributeChangedCallback(name, oldValue, newValue);
@@ -127,6 +137,10 @@ export class TextInput extends AbstractControl<string> {
     this.setMask(maskArray);
   }
 
+  private updateValidationRequiredAttribute(validationRequired: string | null): void {
+    this.setRequiredValidator(validationRequired !== null);
+  }
+
   private updateValidationPatternAttribute(validationPatter: string | null): void {
     if (validationPatter) {
       let regExp: RegExp;
@@ -143,4 +157,4 @@ export class TextInput extends AbstractControl<string> {
   }
 }
 
-customElements.define('rx-text-input', TextInput);
+customElements.define(RxTextInput.tagName, RxTextInput);

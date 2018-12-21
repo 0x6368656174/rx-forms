@@ -1,15 +1,22 @@
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs/operators';
+import { map, shareReplay, switchMap } from 'rxjs/operators';
+import { CustomElement } from './custom-element';
 
 type Validators = Map<string, Observable<boolean>>;
 
 /**
  * Контрол формы
  */
-export abstract class AbstractControl<T> extends HTMLElement {
+export abstract class AbstractControl<T> extends HTMLElement implements CustomElement {
+  /** @internal */
   static get observedAttributes() {
     return ['name'];
   }
+
+  private static throwNameAttributeRequired(): Error {
+    return new Error('Attribute "name" for rx-forms controls is required');
+  }
+
   /** Значение контрола */
   abstract value: Observable<T>;
   /** Признак того, что контрол проходит валидацию */
@@ -43,7 +50,7 @@ export abstract class AbstractControl<T> extends HTMLElement {
 
     this.valid = this.validators$.asObservable().pipe(
       switchMap(validators => {
-        const validators$ = Array.from(validators).map(([name, validator]) => validator);
+        const validators$ = Array.from(validators).map(([_, validator]) => validator);
         return combineLatest(validators$);
       }),
       map(validList => {
@@ -67,10 +74,11 @@ export abstract class AbstractControl<T> extends HTMLElement {
     );
 
     if (!this.hasAttribute('name')) {
-      throw new Error('Attribute "name" for rx-forms controls is required');
+      throw AbstractControl.throwNameAttributeRequired();
     }
   }
 
+  /** @internal */
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
@@ -78,7 +86,7 @@ export abstract class AbstractControl<T> extends HTMLElement {
 
     switch (name) {
       case 'name':
-        this.updateName(newValue);
+        this.updateNameAttribute(newValue);
         break;
     }
   }
@@ -118,6 +126,15 @@ export abstract class AbstractControl<T> extends HTMLElement {
     }
   }
 
+  /**
+   * Устанавливает имя
+   *
+   * @param name Имя
+   */
+  setName(name: string): void {
+    this.name$.next(name);
+  }
+
   protected markAsTouched(): void {
     this.untouched$.next(false);
   }
@@ -126,11 +143,11 @@ export abstract class AbstractControl<T> extends HTMLElement {
     this.pristine$.next(false);
   }
 
-  private updateName(name: string | null): void {
+  private updateNameAttribute(name: string | null): void {
     if (!name) {
-      throw new Error('Attribute "name" for rx-forms controls is required');
+      throw AbstractControl.throwNameAttributeRequired();
     }
 
-    this.name$.next(name);
+    this.setName(name);
   }
 }

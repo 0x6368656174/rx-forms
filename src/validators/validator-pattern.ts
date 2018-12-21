@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { AbstractControl } from './abstract-control';
+import { AbstractControl } from '../elements';
 import { valueValidator } from './value-validator';
 
 export function pattern(control: AbstractControl<string>, regExp: RegExp): Observable<boolean> {

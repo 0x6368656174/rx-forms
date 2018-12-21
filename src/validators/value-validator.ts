@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { AbstractControl } from './abstract-control';
+import { AbstractControl } from '../elements';
 
 type ValidatorFn<T> = (value: T) => boolean;
 
