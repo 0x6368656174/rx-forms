@@ -44,35 +44,38 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
       shareReplay(1),
     );
   }
-  static observedAttributes: string[] = [AbstractControlAttributes.Name, AbstractControlAttributes.ValidatorRequired];
+  static readonly observedAttributes: string[] = [
+    AbstractControlAttributes.Name,
+    AbstractControlAttributes.ValidatorRequired,
+  ];
 
   private static throwAttributeNameRequired(): Error {
     return new Error(`Attribute "${AbstractControlAttributes.Name}" for any rx-forms controls is required`);
   }
 
-  // /** Значение контрола */
-  // abstract value: Observable<T>;
+  abstract readonly tagName: string;
+
   /** Признак того, что контрол проходит валидацию */
-  valid: Observable<boolean>;
+  readonly valid: Observable<boolean>;
   /** Признак того, что контрол не проходит валидацию */
-  invalid: Observable<boolean>;
+  readonly invalid: Observable<boolean>;
   /** Признак того, что контрол "грязный", т.е. его значение менялось програмно */
-  dirty: Observable<boolean>;
+  readonly dirty: Observable<boolean>;
   /** Признак того, что контрол "чистый", т.е. его значение не менялось програмно */
-  pristine: Observable<boolean>;
+  readonly pristine: Observable<boolean>;
   /** Признак того, что контрол принимал и терял фокус */
-  touched: Observable<boolean>;
+  readonly touched: Observable<boolean>;
   /** Признак того, что контрол не принимал и не терял фокус */
-  untouched: Observable<boolean>;
+  readonly untouched: Observable<boolean>;
   /** Список ошибок валидации */
-  validationErrors: Observable<string[]>;
+  readonly validationErrors: Observable<string[]>;
 
   protected abstract value$: BehaviorSubject<T>;
-  protected pristine$ = new BehaviorSubject(true);
-  protected untouched$ = new BehaviorSubject(true);
-  protected validators$ = new BehaviorSubject<Validators>(new Map());
-  protected name$ = new BehaviorSubject<string>('');
-  protected validatorRequired$ = new BehaviorSubject<boolean>(false);
+  protected readonly pristine$ = new BehaviorSubject(true);
+  protected readonly untouched$ = new BehaviorSubject(true);
+  protected readonly validators$ = new BehaviorSubject<Validators>(new Map());
+  protected readonly name$ = new BehaviorSubject<string>('');
+  protected readonly validatorRequired$ = new BehaviorSubject<boolean>(false);
 
   protected constructor() {
     super();
@@ -112,6 +115,7 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
     }
 
     this.bindBaseObservablesToAttributes();
+    this.bindBaseObservablesToClass();
   }
 
   /** @internal */
@@ -140,6 +144,7 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
    * @param value Значение
    */
   setValue(value: T) {
+    this.markAsDirty();
     this.value$.next(value);
   }
 
@@ -191,12 +196,44 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
     this.untouched$.next(false);
   }
 
-  protected martAsDirty(): void {
+  protected markAsDirty(): void {
     this.pristine$.next(false);
   }
 
   protected updateAttribute(attribute: string, value: string | null): void {
     updateAttribute(this, attribute, value);
+  }
+
+  private bindBaseObservablesToClass() {
+    this.valid.subscribe(valid => {
+      if (valid) {
+        this.classList.add(`${this.tagName}--valid`);
+        this.classList.remove(`${this.tagName}--invalid`);
+      } else {
+        this.classList.remove(`${this.tagName}--valid`);
+        this.classList.add(`${this.tagName}--invalid`);
+      }
+    });
+
+    this.dirty.subscribe(dirty => {
+      if (dirty) {
+        this.classList.add(`${this.tagName}--dirty`);
+        this.classList.remove(`${this.tagName}--pristine`);
+      } else {
+        this.classList.remove(`${this.tagName}--dirty`);
+        this.classList.add(`${this.tagName}--pristine`);
+      }
+    });
+
+    this.touched.subscribe(touched => {
+      if (touched) {
+        this.classList.add(`${this.tagName}--touched`);
+        this.classList.remove(`${this.tagName}--untouched`);
+      } else {
+        this.classList.remove(`${this.tagName}--touched`);
+        this.classList.add(`${this.tagName}--untouched`);
+      }
+    });
   }
 
   private bindBaseObservablesToAttributes(): void {

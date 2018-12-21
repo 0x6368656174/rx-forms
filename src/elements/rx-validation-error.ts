@@ -20,9 +20,9 @@ export class RxValidationError extends HTMLElement implements CustomElement {
       shareReplay(1),
     );
   }
-  static observedAttributes = [RxValidationErrorAttributes.Validator];
-  static tagName = 'rx-validation-error';
-  private static controls: string[] = [RxTextInput.tagName];
+  static readonly observedAttributes = [RxValidationErrorAttributes.Validator];
+  static readonly tagName = 'rx-validation-error';
+  private static readonly controls: string[] = [RxTextInput.tagName];
 
   private static throwAttributeValidatorRequired(): Error {
     return new Error(
@@ -30,8 +30,8 @@ export class RxValidationError extends HTMLElement implements CustomElement {
     );
   }
 
-  private validator$ = new BehaviorSubject<string>('');
-  private unsubscribe$ = new Subject<void>();
+  private readonly validator$ = new BehaviorSubject<string>('');
+  private readonly unsubscribe$ = new Subject<void>();
 
   constructor() {
     super();

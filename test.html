@@ -2,6 +2,10 @@
 <head>
     <title>Test</title>
     <style>
+        .rx-text-input--touched.rx-text-input--invalid input {
+            border-color: red;
+        }
+
         .rx-validation-error--hidden {
             display: none;
         }
@@ -27,8 +31,8 @@
         <input>
     </label>
 
-    <rx-validation-error validator="required">Данное поле обезательно</rx-validation-error>
-    <rx-validation-error validator="pattern">Введите номер телефона</rx-validation-error>
+    <rx-validation-error validator="required">Заполните данное поле</rx-validation-error>
+    <rx-validation-error validator="pattern">Введите верный номер телефона</rx-validation-error>
 </rx-text-input>
 
 <script src="./dist/rx-forms.cjs.js.js"></script>

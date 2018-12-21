@@ -31,8 +31,13 @@ export class RxTextInput extends AbstractControl<string> {
       shareReplay(1),
     );
   }
-  static tagName: string = 'rx-text-input';
-  static observedAttributes = [
+
+  static readonly tagName: string = 'rx-text-input';
+  get tagName(): string {
+    return RxTextInput.tagName;
+  }
+
+  static readonly observedAttributes = [
     ...AbstractControl.observedAttributes,
     RxTextInputAttributes.ValidatorPattern,
     RxTextInputAttributes.Mask,
@@ -75,11 +80,11 @@ export class RxTextInput extends AbstractControl<string> {
     }
   }
 
-  protected value$ = new BehaviorSubject<string>('');
-  private mask$ = new BehaviorSubject<Array<string | RegExp> | null>(null);
-  private validatorPattern$ = new BehaviorSubject<RegExp | null>(null);
+  protected readonly value$ = new BehaviorSubject<string>('');
+  private readonly mask$ = new BehaviorSubject<Array<string | RegExp> | null>(null);
+  private readonly validatorPattern$ = new BehaviorSubject<RegExp | null>(null);
 
-  private input: HTMLInputElement;
+  private readonly input: HTMLInputElement;
 
   constructor() {
     super();
