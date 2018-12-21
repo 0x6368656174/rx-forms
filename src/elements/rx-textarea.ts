@@ -2,6 +2,7 @@ import { BehaviorSubject, fromEvent } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Validators } from '../validators';
 import { AbstractControl } from './abstract-control';
+import { updateAttribute } from './utils';
 
 export class RxTextarea extends AbstractControl<string> {
   static readonly tagName: string = 'rx-textarea';
@@ -31,7 +32,10 @@ export class RxTextarea extends AbstractControl<string> {
   }
 
   private bindObservablesToInputAttributes(): void {
-    this.name$.asObservable().subscribe(name => this.textarea.setAttribute('name', name));
+    this.name$.asObservable().subscribe(name => updateAttribute(this.textarea, 'name', name));
+    this.readonly$
+      .asObservable()
+      .subscribe(readonly => updateAttribute(this.textarea, 'readonly', readonly ? '' : null));
   }
 
   private bindOnInput(): void {

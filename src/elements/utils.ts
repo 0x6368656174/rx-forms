@@ -1,5 +1,5 @@
 export function updateAttribute(element: HTMLElement, attribute: string, value: string | null): void {
-  if (!value) {
+  if (value === null) {
     if (element.hasAttribute(attribute)) {
       element.removeAttribute(attribute);
     }

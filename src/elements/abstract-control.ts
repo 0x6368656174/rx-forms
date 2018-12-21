@@ -8,6 +8,7 @@ type Validators = Map<string, Observable<boolean>>;
 
 export enum AbstractControlAttributes {
   Name = 'name',
+  ReadOnly = 'readonly',
   ValidatorRequired = 'validator-required',
 }
 
@@ -36,6 +37,16 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   }
 
   /**
+   * Признак того, что поле доступно только для чтения
+   */
+  get readonly(): Observable<boolean> {
+    return this.readonly$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
+  }
+
+  /**
    * Имя
    */
   get name(): Observable<string> {
@@ -46,6 +57,7 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   }
   static readonly observedAttributes: string[] = [
     AbstractControlAttributes.Name,
+    AbstractControlAttributes.ReadOnly,
     AbstractControlAttributes.ValidatorRequired,
   ];
 
@@ -75,6 +87,7 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   protected readonly untouched$ = new BehaviorSubject(true);
   protected readonly validators$ = new BehaviorSubject<Validators>(new Map());
   protected readonly name$ = new BehaviorSubject<string>('');
+  protected readonly readonly$ = new BehaviorSubject<boolean>(false);
   protected readonly validatorRequired$ = new BehaviorSubject<boolean>(false);
 
   protected constructor() {
@@ -140,6 +153,9 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
 
         this.name$.next(newValue);
         break;
+      case AbstractControlAttributes.ReadOnly:
+        this.readonly$.next(newValue !== null);
+        break;
       case AbstractControlAttributes.ValidatorRequired:
         this.validatorRequired$.next(newValue !== null);
         break;
@@ -147,11 +163,20 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   }
 
   /**
+   * Устанавлиает имя
+   *
+   * @param name Имя
+   */
+  setName(name: string): void {
+    this.name$.next(name);
+  }
+
+  /**
    * Устанавлиает значени контрола
    *
    * @param value Значение
    */
-  setValue(value: T) {
+  setValue(value: T): void {
     this.markAsDirty();
     this.value$.next(value);
   }
@@ -161,8 +186,17 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
    *
    * @param required Признак того, что поле обязательное
    */
-  setValidatorRequired(required: boolean) {
+  setValidatorRequired(required: boolean): void {
     this.validatorRequired$.next(required);
+  }
+
+  /**
+   * Устанавлиает признак того, что поле доступно только для чтения
+   *
+   * @param readonly Признак того, что поле доступно только для чтения
+   */
+  setReadonly(readonly: boolean): void {
+    this.readonly$.next(readonly);
   }
 
   /**
@@ -189,15 +223,6 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
       next.delete(validator);
       this.validators$.next(next);
     }
-  }
-
-  /**
-   * Устанавлиает имя
-   *
-   * @param name Имя
-   */
-  setName(name: string) {
-    this.name$.next(name);
   }
 
   protected markAsTouched(): void {
@@ -247,6 +272,10 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
   private bindBaseObservablesToAttributes(): void {
     this.name$.asObservable().subscribe(name => {
       this.updateAttribute(AbstractControlAttributes.Name, name);
+    });
+
+    this.readonly$.asObservable().subscribe(readonly => {
+      this.updateAttribute(AbstractControlAttributes.ReadOnly, readonly ? '' : null);
     });
 
     this.validatorRequired$.asObservable().subscribe(required => {

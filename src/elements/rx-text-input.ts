@@ -5,6 +5,7 @@ import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { pattern, Validators } from '../validators';
 import { AbstractControl } from './abstract-control';
+import { updateAttribute } from './utils';
 
 export enum RxTextInputAttributes {
   Mask = 'mask',
@@ -140,7 +141,8 @@ export class RxTextInput extends AbstractControl<string> {
   }
 
   private bindObservablesToInputAttributes(): void {
-    this.name$.asObservable().subscribe(name => this.input.setAttribute('name', name));
+    this.name$.asObservable().subscribe(name => updateAttribute(this.input, 'name', name));
+    this.readonly$.asObservable().subscribe(readonly => updateAttribute(this.input, 'readonly', readonly ? '' : null));
   }
 
   private bindOnInput(): void {
