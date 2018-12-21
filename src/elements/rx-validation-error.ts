@@ -2,8 +2,8 @@ import { isEqual } from 'lodash';
 import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { AbstractControl } from './abstract-control';
+import { anyControlQuery, controlHtmlTags } from './controls';
 import { CustomElement } from './custom-element';
-import { RxTextInput } from './rx-text-input';
 import { updateAttribute } from './utils';
 
 export enum RxValidationErrorAttributes {
@@ -22,7 +22,6 @@ export class RxValidationError extends HTMLElement implements CustomElement {
   }
   static readonly observedAttributes = [RxValidationErrorAttributes.Validator];
   static readonly tagName = 'rx-validation-error';
-  private static readonly controls: string[] = [RxTextInput.tagName];
 
   private static throwAttributeValidatorRequired(): Error {
     return new Error(
@@ -104,10 +103,9 @@ export class RxValidationError extends HTMLElement implements CustomElement {
   }
 
   private findParentControl(): AbstractControl<any> {
-    const parentControl = this.closest(RxValidationError.controls.join(' '));
+    const parentControl = this.closest(anyControlQuery);
     if (!parentControl || !(parentControl instanceof AbstractControl)) {
-      const controls = RxValidationError.controls.map(control => `<${control}>`);
-      throw new Error(`<${RxValidationError.tagName}> must be child one of ${controls}`);
+      throw new Error(`<${RxValidationError.tagName}> must be child one of ${controlHtmlTags.join(', ')}`);
     }
 
     return parentControl;

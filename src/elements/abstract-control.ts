@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash';
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs/operators';
 import { CustomElement } from './custom-element';
 import { updateAttribute } from './utils';
@@ -87,6 +87,10 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
 
     this.valid = this.validators$.asObservable().pipe(
       switchMap(validators => {
+        if (validators.size === 0) {
+          return of([]);
+        }
+
         const validators$ = Array.from(validators).map(([_, validator]) => validator);
         return combineLatest(validators$);
       }),
@@ -99,6 +103,10 @@ export abstract class AbstractControl<T> extends HTMLElement implements CustomEl
 
     this.validationErrors = this.validators$.asObservable().pipe(
       switchMap(validators => {
+        if (validators.size === 0) {
+          return of([]);
+        }
+
         const validators$ = Array.from(validators).map(([name, validator]) => {
           return validator.pipe(map(valid => (valid ? null : name)));
         });
