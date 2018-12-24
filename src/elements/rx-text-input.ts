@@ -5,15 +5,13 @@ import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { pattern, Validators } from '../validators';
 import {
-  bindControlObservablesToAttributes,
-  bindControlObservablesToClass,
-  bindControlObservablesToValidators,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
+  prepareControl,
   removeValidator,
   setValidator,
   updateControlAttributesBehaviourSubjects,
@@ -59,9 +57,9 @@ function bindValidators(this: RxTextInput): void {
 
   data.pattern$.asObservable().subscribe(regExp => {
     if (!regExp) {
-      removeValidator.call(data, Validators.Pattern);
+      removeValidator(data, Validators.Pattern);
     } else {
-      setValidator.call(data, Validators.Pattern, pattern(data.value$.asObservable(), regExp));
+      setValidator(data, Validators.Pattern, pattern(data.value$.asObservable(), regExp));
     }
   });
 }
@@ -158,7 +156,7 @@ function getPrivate(instance: RxTextInput): RxTextInputPrivate {
 }
 
 /**
- * @internal
+ * Поле ввода текста
  */
 export class RxTextInput extends HTMLInputElement implements Control<string> {
   /** Тэг */
@@ -226,9 +224,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
 
     fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
 
-    bindControlObservablesToClass.call(this, RxTextInput.tagName, this);
-    bindControlObservablesToAttributes.call(this, this);
-    bindControlObservablesToValidators.call(data, this);
+    prepareControl(this, RxTextInput.tagName, data);
 
     bindOnInput.call(this);
     bindValidators.call(this);
@@ -252,7 +248,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   }
 
   removeValidator(validator: string): void {
-    removeValidator.call(getPrivate(this), validator);
+    removeValidator(getPrivate(this), validator);
   }
 
   setName(name: string): void {
@@ -268,7 +264,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   }
 
   setValidator(name: string, validator: Observable<boolean>): void {
-    setValidator.call(getPrivate(this), name, validator);
+    setValidator(getPrivate(this), name, validator);
   }
 
   setValue(value: string): void {
@@ -309,19 +305,19 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
         data.pattern$.next(newValue !== null ? stringToRegExp(newValue) : null);
         break;
       default:
-        updateControlAttributesBehaviourSubjects.call(data, name, RxTextInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(data, name, RxTextInput.tagName, newValue);
         break;
     }
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback.call(this, RxTextInput.tagName);
+    controlConnectedCallback(this, RxTextInput.tagName);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback.call(this, RxTextInput.tagName);
+    controlDisconnectedCallback(this, RxTextInput.tagName);
   }
 }
 

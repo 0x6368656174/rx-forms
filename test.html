@@ -69,12 +69,34 @@
     </rx-form-field>
 </div>
 
+<div>
+    <rx-form-field>
+        <label>
+            Дата
+
+            <input is="rx-date-input"
+                   name="date"
+                   required
+                   value="16.10.1988"
+                   format="dd.MM.yyyy"
+                   locale="ru"
+            >
+        </label>
+
+        <rx-success>Дата введена</rx-success>
+        <rx-error validator="required">Заполните данное поле</rx-error>
+        <rx-error validator="format">Введите верную дату</rx-error>
+    </rx-form-field>
+</div>
+
 <script src="./dist/rx-forms.cjs.js.js"></script>
 <script>
     document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone: ${v}`));
     document.querySelector('input[name="phone"]').rxValid.subscribe(v => console.log(`Phone valid: ${v}`));
     document.querySelector('textarea[name="text"]').rxValue.subscribe(v => console.log(`Text value: ${v}`));
     document.querySelector('textarea[name="text"]').rxValid.subscribe(v => console.log(`Text valid: ${v}`));
+    document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date: ${v}`));
+    document.querySelector('input[name="date"]').rxValid.subscribe(v => console.log(`Date valid: ${v}`));
 </script>
 </body>
 </html>

@@ -1,14 +1,12 @@
 import { BehaviorSubject, fromEvent, Observable } from 'rxjs';
 import {
-  bindControlObservablesToAttributes,
-  bindControlObservablesToClass,
-  bindControlObservablesToValidators,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
+  prepareControl,
   removeValidator,
   setValidator,
   updateControlAttributesBehaviourSubjects,
@@ -102,9 +100,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
     fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
 
-    bindControlObservablesToClass.call(this, RxTextarea.tagName, this);
-    bindControlObservablesToAttributes.call(this, this);
-    bindControlObservablesToValidators.call(data, this);
+    prepareControl(this, RxTextarea.tagName, data);
 
     bindOnInput.call(this);
   }
@@ -126,7 +122,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   }
 
   removeValidator(validator: string): void {
-    removeValidator.call(getPrivate(this), validator);
+    removeValidator(getPrivate(this), validator);
   }
 
   setName(name: string): void {
@@ -142,7 +138,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   }
 
   setValidator(name: string, validator: Observable<boolean>): void {
-    setValidator.call(getPrivate(this), name, validator);
+    setValidator(getPrivate(this), name, validator);
   }
 
   setValue(value: string): void {
@@ -157,17 +153,17 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
     const data = getPrivate(this);
 
-    updateControlAttributesBehaviourSubjects.call(data, name, RxTextarea.tagName, newValue);
+    updateControlAttributesBehaviourSubjects(data, name, RxTextarea.tagName, newValue);
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback.call(this, RxTextarea.tagName);
+    controlConnectedCallback(this, RxTextarea.tagName);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback.call(this, RxTextarea.tagName);
+    controlDisconnectedCallback(this, RxTextarea.tagName);
   }
 }
 

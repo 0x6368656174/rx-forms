@@ -8,17 +8,32 @@ import { updateAttribute } from './utils';
 export type ValidatorsMap = Map<string, Observable<boolean>>;
 export type ValidatorsBehaviourSubject = BehaviorSubject<ValidatorsMap>;
 
+export function prepareControl<T>(
+  control: HTMLElement & ControlObservables<T>,
+  tagName: string,
+  withValidators: WithValidators,
+) {
+  if (!control.hasAttribute(ControlAttributes.Name)) {
+    throw throwAttributeNameRequired(tagName);
+  }
+
+  bindControlObservablesToClass(control, tagName, control);
+  bindControlObservablesToAttributes(control, control);
+  bindControlObservablesToValidators(withValidators, control);
+}
+
 /**
  * Устанавливает валидатор
  *
+ * @param control Контрол
  * @param name Название валидатора
  * @param validator Валидатор, Observable, которая генерирует true, если контрол проходит валидацию,
  *                  или false, если не проходит
  */
-export function setValidator(this: WithValidators, name: string, validator: Observable<boolean>): void {
-  const next = new Map(this.validators$.getValue());
+export function setValidator(control: WithValidators, name: string, validator: Observable<boolean>): void {
+  const next = new Map(control.validators$.getValue());
   next.set(name, validator);
-  this.validators$.next(next);
+  control.validators$.next(next);
 }
 
 interface WithValidators {
@@ -28,13 +43,14 @@ interface WithValidators {
 /**
  * Удаляет валидатор
  *
+ * @param control Контрол
  * @param validator Название валидатора
  */
-export function removeValidator(this: WithValidators, validator: string): void {
-  const next = new Map(this.validators$.getValue());
+export function removeValidator(control: WithValidators, validator: string): void {
+  const next = new Map(control.validators$.getValue());
   if (next.has(validator)) {
     next.delete(validator);
-    this.validators$.next(next);
+    control.validators$.next(next);
   }
 }
 
@@ -47,41 +63,38 @@ interface ControlClassObservables {
 /**
  * Биндит общие Observable'ы в имена классов элемента
  *
+ * @param control Контрол
  * @param tagName Тэг элемента
  * @param observables Observable'ы
  */
-export function bindControlObservablesToClass(
-  this: HTMLElement,
-  tagName: string,
-  observables: ControlClassObservables,
-) {
+function bindControlObservablesToClass(control: HTMLElement, tagName: string, observables: ControlClassObservables) {
   observables.rxValid.subscribe(valid => {
     if (valid) {
-      this.classList.add(`${tagName}--valid`);
-      this.classList.remove(`${tagName}--invalid`);
+      control.classList.add(`${tagName}--valid`);
+      control.classList.remove(`${tagName}--invalid`);
     } else {
-      this.classList.remove(`${tagName}--valid`);
-      this.classList.add(`${tagName}--invalid`);
+      control.classList.remove(`${tagName}--valid`);
+      control.classList.add(`${tagName}--invalid`);
     }
   });
 
   observables.rxDirty.subscribe(dirty => {
     if (dirty) {
-      this.classList.add(`${tagName}--dirty`);
-      this.classList.remove(`${tagName}--pristine`);
+      control.classList.add(`${tagName}--dirty`);
+      control.classList.remove(`${tagName}--pristine`);
     } else {
-      this.classList.remove(`${tagName}--dirty`);
-      this.classList.add(`${tagName}--pristine`);
+      control.classList.remove(`${tagName}--dirty`);
+      control.classList.add(`${tagName}--pristine`);
     }
   });
 
   observables.rxTouched.subscribe(touched => {
     if (touched) {
-      this.classList.add(`${tagName}--touched`);
-      this.classList.remove(`${tagName}--untouched`);
+      control.classList.add(`${tagName}--touched`);
+      control.classList.remove(`${tagName}--untouched`);
     } else {
-      this.classList.remove(`${tagName}--touched`);
-      this.classList.add(`${tagName}--untouched`);
+      control.classList.remove(`${tagName}--touched`);
+      control.classList.add(`${tagName}--untouched`);
     }
   });
 }
@@ -101,19 +114,20 @@ interface ControlAttributeObservables {
 /**
  * Биндит общие Observable'ы в атрибуты элемента
  *
+ * @param control Контрол
  * @param observables Observable'ы
  */
-export function bindControlObservablesToAttributes(this: HTMLElement, observables: ControlAttributeObservables): void {
+function bindControlObservablesToAttributes(control: HTMLElement, observables: ControlAttributeObservables): void {
   observables.rxName.subscribe(name => {
-    updateAttribute(this, ControlAttributes.Name, name);
+    updateAttribute(control, ControlAttributes.Name, name);
   });
 
   observables.rxReadonly.subscribe(readonly => {
-    updateAttribute(this, ControlAttributes.Readonly, readonly ? '' : null);
+    updateAttribute(control, ControlAttributes.Readonly, readonly ? '' : null);
   });
 
   observables.rxRequired.subscribe(required => {
-    updateAttribute(this, ControlAttributes.Required, required ? '' : null);
+    updateAttribute(control, ControlAttributes.Required, required ? '' : null);
   });
 }
 
@@ -128,19 +142,20 @@ interface WithValue<T> {
 /**
  * Биндит общие Observable'ы к валидаторам
  *
+ * @param control Контрол
  * @param observables Observable'ы
  */
-export function bindControlObservablesToValidators(
-  this: WithValidators,
+function bindControlObservablesToValidators(
+  control: WithValidators,
   observables: ControlValidatorObservables & WithValue<any>,
 ): void {
   observables.rxRequired.subscribe(required => {
     if (!required) {
-      removeValidator.call(this, ValidatorsName.Required);
+      removeValidator(control, ValidatorsName.Required);
     } else {
       const validator = observables.rxValue.pipe(map(value => !!value));
 
-      setValidator.call(this, ValidatorsName.Required, validator);
+      setValidator(control, ValidatorsName.Required, validator);
     }
   });
 }
@@ -166,19 +181,21 @@ export function throwAttributeNameRequired(tagName: string): Error {
 /**
  * Базовая функция, вызываемая при добавлении элемента в DOM
  *
+ * @param control Контрол
  * @param tagName Тэг элемента
  */
-export function controlConnectedCallback<T>(this: HTMLElement & Control<T>, tagName: string) {
-  findParentFormField<T>(this, tagName).setControl(this);
+export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, tagName: string) {
+  findParentFormField<T>(control, tagName).setControl(control);
 }
 
 /**
  * Базовая функция, вызываемая при удалении элемента из DOM
  *
+ * @param control Контрол
  * @param tagName Тэг элемента
  */
-export function controlDisconnectedCallback(this: HTMLElement, tagName: string) {
-  findParentFormField(this, tagName).setControl(null);
+export function controlDisconnectedCallback(control: HTMLElement, tagName: string) {
+  findParentFormField(control, tagName).setControl(null);
 }
 
 /**
@@ -205,12 +222,13 @@ interface ControlAttributesBehaviorSubjects {
 /**
  * Обновляет базовые BehaviourSubject'ы атрибутов
  *
+ * @param control Контрол
  * @param attributeName Имя атрибута
  * @param tagName Тэг элемента
  * @param value Значение
  */
 export function updateControlAttributesBehaviourSubjects(
-  this: ControlAttributesBehaviorSubjects,
+  control: ControlAttributesBehaviorSubjects,
   attributeName: string,
   tagName: string,
   value: string | null,
@@ -221,13 +239,13 @@ export function updateControlAttributesBehaviourSubjects(
         throw throwAttributeNameRequired(tagName);
       }
 
-      this.name$.next(value);
+      control.name$.next(value);
       break;
     case ControlAttributes.Readonly:
-      this.readonly$.next(value !== null);
+      control.readonly$.next(value !== null);
       break;
     case ControlAttributes.Required:
-      this.required$.next(value !== null);
+      control.required$.next(value !== null);
       break;
   }
 }
