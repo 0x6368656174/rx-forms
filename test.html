@@ -10,19 +10,19 @@
             border-color: red;
         }
 
-        .rx-validation-success--hidden {
+        .rx-success--hidden {
             display: none;
         }
 
-        .rx-validation-success--visible {
+        .rx-success--visible {
             display: block;
         }
 
-        .rx-validation-error--hidden {
+        .rx-error--hidden {
             display: none;
         }
 
-        .rx-validation-error--visible {
+        .rx-error--visible {
             display: block;
         }
 
@@ -34,44 +34,50 @@
 
 <body>
 <div>
-    <rx-text-input name="phone"
-                   readonly
-                   validator-required
-                   validator-pattern="/\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}/"
-                   mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']">
+    <rx-form-field>
         <label>
             Телефон
 
-            <input>
+            <input is="rx-text-input"
+                name="phone"
+                required
+                pattern="\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}"
+                mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']"
+                value="12"
+            >
         </label>
 
-        <rx-validation-success>Это хороший телефон</rx-validation-success>
-        <rx-validation-error validator="required">Заполните данное поле</rx-validation-error>
-        <rx-validation-error validator="pattern">Введите верный номер телефона</rx-validation-error>
-    </rx-text-input>
+        <rx-success>Это хороший телефон</rx-success>
+        <rx-error validator="required">Заполните данное поле</rx-error>
+        <rx-error validator="pattern">Введите верный номер телефона</rx-error>
+    </rx-form-field>
 </div>
 
-<div>
-    <rx-textarea name="text"
-                 readonly
-                 validator-required>
-        <label>
-            Текст
+<!--<div>-->
+    <!--<rx-form-field>-->
+        <!--<label>-->
+            <!--Текст-->
 
-            <textarea></textarea>
-        </label>
+            <!--<textarea is="rx-textarea"-->
+                <!--name="text"-->
+                      <!--readonly-->
+                      <!--required-->
+            <!--&gt;-->
+                <!--Это текст-->
+            <!--</textarea>-->
+        <!--</label>-->
 
-        <rx-validation-success>Текст ввден</rx-validation-success>
-        <rx-validation-error validator="required">Заполните данное поле</rx-validation-error>
-    </rx-textarea>
-</div>
+        <!--<rx-success>Текст ввден</rx-success>-->
+        <!--<rx-error validator="required">Заполните данное поле</rx-error>-->
+    <!--</rx-form-field>-->
+<!--</div>-->
 
 <script src="./dist/rx-forms.cjs.js.js"></script>
 <script>
-    document.querySelector('rx-text-input[name="phone"]').value.subscribe(v => console.log(`Phone: ${v}`));
-    document.querySelector('rx-text-input[name="phone"]').valid.subscribe(v => console.log(`Phone valid: ${v}`));
-    document.querySelector('rx-textarea').value.subscribe(v => console.log(`Text value: ${v}`));
-    document.querySelector('rx-textarea').valid.subscribe(v => console.log(`Text valid: ${v}`));
+    document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone: ${v}`));
+    document.querySelector('input[name="phone"]').rxValid.subscribe(v => console.log(`Phone valid: ${v}`));
+    // document.querySelector('textarea[name="text"]').value.subscribe(v => console.log(`Text value: ${v}`));
+    // document.querySelector('textarea[name="text"]').rxValid.subscribe(v => console.log(`Text valid: ${v}`));
 </script>
 </body>
 </html>

@@ -1,11 +1,13 @@
 import { Observable } from 'rxjs';
-import { AbstractControl } from '../elements';
-import { valueValidator } from './value-validator';
+import { distinctUntilChanged, map } from 'rxjs/operators';
 
-export function pattern(control: AbstractControl<string>, regExp: RegExp): Observable<boolean> {
+export function pattern(rxValue: Observable<string>, regExp: RegExp): Observable<boolean> {
   const validator = (value: string): boolean => {
     return regExp.test(value);
   };
 
-  return valueValidator(control, validator);
+  return rxValue.pipe(
+    map(validator),
+    distinctUntilChanged(),
+  );
 }
