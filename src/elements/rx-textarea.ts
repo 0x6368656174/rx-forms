@@ -1,60 +1,174 @@
-// import { BehaviorSubject, fromEvent } from 'rxjs';
-// import { map } from 'rxjs/operators';
-// import { Validators } from '../validators';
-// import { Control } from './abstract-control';
-// import { updateAttribute } from './utils';
-//
-// export class RxTextarea extends Control<string> {
-//   static readonly tagName: string = 'rx-textarea';
-//   get tagName(): string {
-//     return RxTextarea.tagName;
-//   }
-//
-//   protected readonly value$ = new BehaviorSubject<string>('');
-//
-//   private readonly textarea: HTMLTextAreaElement;
-//
-//   constructor() {
-//     super();
-//
-//     const foundTextarea = this.querySelector('textarea');
-//     if (!foundTextarea) {
-//       throw new Error(`<${RxTextarea.tagName}> not found child <textarea>`);
-//     }
-//
-//     this.textarea = foundTextarea;
-//
-//     fromEvent(this.textarea, 'blur').subscribe(() => this.markAsTouched());
-//
-//     this.bindObservablesToInputAttributes();
-//     this.bindOnInput();
-//     this.bindValidators();
-//   }
-//
-//   private bindObservablesToInputAttributes(): void {
-//     this.name$.asObservable().subscribe(name => updateAttribute(this.textarea, 'name', name));
-//     this.readonly$
-//       .asObservable()
-//       .subscribe(readonly => updateAttribute(this.textarea, 'rxReadonly', readonly ? '' : null));
-//   }
-//
-//   private bindOnInput(): void {
-//     fromEvent(this.textarea, 'input').subscribe(() => {
-//       this.value$.next(this.textarea.value);
-//     });
-//   }
-//
-//   private bindValidators(): void {
-//     this.validatorRequired$.asObservable().subscribe(required => {
-//       if (!required) {
-//         this.removeValidator(Validators.Required);
-//       } else {
-//         const validator = this.rxValue.pipe(map(value => value !== ''));
-//
-//         this.setValidator(Validators.Required, validator);
-//       }
-//     });
-//   }
-// }
-//
-// customElements.define(RxTextarea.tagName, RxTextarea);
+import { BehaviorSubject, fromEvent, Observable } from 'rxjs';
+import {
+  bindControlObservablesToAttributes,
+  bindControlObservablesToClass,
+  bindControlObservablesToValidators,
+  Control,
+  ControlBehaviourSubjects,
+  controlConnectedCallback,
+  controlDisconnectedCallback,
+  controlObservedAttributes,
+  createControlObservables,
+  removeValidator,
+  setValidator,
+  updateControlAttributesBehaviourSubjects,
+  ValidatorsMap,
+} from './control';
+
+function bindOnInput(this: RxTextarea): void {
+  const data = getPrivate(this);
+
+  fromEvent(this, 'input').subscribe(() => {
+    data.value$.next(this.value);
+  });
+}
+
+interface RxTextareaPrivate extends ControlBehaviourSubjects<string> {
+  readonly value$: BehaviorSubject<string>;
+  readonly validators$: BehaviorSubject<ValidatorsMap>;
+  readonly pristine$: BehaviorSubject<boolean>;
+  readonly untouched$: BehaviorSubject<boolean>;
+  readonly name$: BehaviorSubject<string>;
+  readonly readonly$: BehaviorSubject<boolean>;
+  readonly required$: BehaviorSubject<boolean>;
+}
+
+const privateData: WeakMap<RxTextarea, RxTextareaPrivate> = new WeakMap();
+
+function createPrivate(instance: RxTextarea): RxTextareaPrivate {
+  const data = {
+    name$: new BehaviorSubject<string>(''),
+    pristine$: new BehaviorSubject(true),
+    readonly$: new BehaviorSubject<boolean>(false),
+    required$: new BehaviorSubject<boolean>(false),
+    untouched$: new BehaviorSubject(true),
+    validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
+    value$: new BehaviorSubject<string>(instance.value),
+  };
+
+  privateData.set(instance, data);
+
+  return data;
+}
+
+function getPrivate(instance: RxTextarea): RxTextareaPrivate {
+  const data = privateData.get(instance);
+  if (data === undefined) {
+    throw new Error('Something wrong =(');
+  }
+
+  return data;
+}
+
+/**
+ * @internal
+ */
+export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
+  /** Тэг */
+  static readonly tagName: string = 'rx-textarea';
+
+  /** @internal */
+  static readonly observedAttributes = controlObservedAttributes;
+
+  readonly rxDirty: Observable<boolean>;
+  readonly rxInvalid: Observable<boolean>;
+  readonly rxName: Observable<string>;
+  readonly rxPristine: Observable<boolean>;
+  readonly rxReadonly: Observable<boolean>;
+  readonly rxRequired: Observable<boolean>;
+  readonly rxTouched: Observable<boolean>;
+  readonly rxUntouched: Observable<boolean>;
+  readonly rxValid: Observable<boolean>;
+  readonly rxValidationErrors: Observable<string[]>;
+  readonly rxValue: Observable<string>;
+
+  constructor() {
+    super();
+
+    const data = createPrivate(this);
+
+    const observables = createControlObservables(data);
+    this.rxName = observables.rxName;
+    this.rxReadonly = observables.rxReadonly;
+    this.rxRequired = observables.rxRequired;
+    this.rxValue = observables.rxValue;
+    this.rxPristine = observables.rxPristine;
+    this.rxDirty = observables.rxDirty;
+    this.rxUntouched = observables.rxUntouched;
+    this.rxTouched = observables.rxTouched;
+    this.rxValid = observables.rxValid;
+    this.rxInvalid = observables.rxInvalid;
+    this.rxValidationErrors = observables.rxValidationErrors;
+
+    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
+
+    bindControlObservablesToClass.call(this, RxTextarea.tagName, this);
+    bindControlObservablesToAttributes.call(this, this);
+    bindControlObservablesToValidators.call(data, this);
+
+    bindOnInput.call(this);
+  }
+
+  markAsDirty(): void {
+    getPrivate(this).pristine$.next(false);
+  }
+
+  markAsPristine(): void {
+    getPrivate(this).pristine$.next(true);
+  }
+
+  markAsTouched(): void {
+    getPrivate(this).untouched$.next(false);
+  }
+
+  markAsUnTouched(): void {
+    getPrivate(this).untouched$.next(true);
+  }
+
+  removeValidator(validator: string): void {
+    removeValidator.call(getPrivate(this), validator);
+  }
+
+  setName(name: string): void {
+    getPrivate(this).name$.next(name);
+  }
+
+  setReadonly(readonly: boolean): void {
+    getPrivate(this).readonly$.next(readonly);
+  }
+
+  setRequired(required: boolean): void {
+    getPrivate(this).required$.next(required);
+  }
+
+  setValidator(name: string, validator: Observable<boolean>): void {
+    setValidator.call(getPrivate(this), name, validator);
+  }
+
+  setValue(value: string): void {
+    getPrivate(this).value$.next(value);
+    this.markAsDirty();
+  }
+
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    if (newValue === oldValue) {
+      return;
+    }
+
+    const data = getPrivate(this);
+
+    updateControlAttributesBehaviourSubjects.call(data, name, RxTextarea.tagName, newValue);
+  }
+
+  /** @internal */
+  connectedCallback() {
+    controlConnectedCallback.call(this, RxTextarea.tagName);
+  }
+
+  /** @internal */
+  disconnectedCallback() {
+    controlDisconnectedCallback.call(this, RxTextarea.tagName);
+  }
+}
+
+customElements.define(RxTextarea.tagName, RxTextarea, { extends: 'textarea' });

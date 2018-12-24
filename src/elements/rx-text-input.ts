@@ -26,6 +26,96 @@ enum RxTextInputAttributes {
   Pattern = 'pattern',
 }
 
+function bindOnInput(this: RxTextInput): void {
+  const data = getPrivate(this);
+
+  const textInputMaskElement$ = data.mask$.asObservable().pipe(
+    map(mask => {
+      if (!mask) {
+        return null;
+      }
+
+      return createTextMaskInputElement({
+        inputElement: this,
+        mask,
+      });
+    }),
+  );
+
+  const onInput$ = fromEvent(this, 'input');
+  combineLatest(onInput$, textInputMaskElement$).subscribe(([_, textInputMaskElement]) => {
+    if (textInputMaskElement === null) {
+      data.value$.next(this.value);
+      return;
+    }
+
+    textInputMaskElement.update(this.value);
+    data.value$.next(this.value);
+  });
+}
+
+function bindValidators(this: RxTextInput): void {
+  const data = getPrivate(this);
+
+  data.pattern$.asObservable().subscribe(regExp => {
+    if (!regExp) {
+      removeValidator.call(data, Validators.Pattern);
+    } else {
+      setValidator.call(data, Validators.Pattern, pattern(data.value$.asObservable(), regExp));
+    }
+  });
+}
+
+function bindObservablesToAttributes(this: RxTextInput): void {
+  const data = getPrivate(this);
+
+  data.mask$.asObservable().subscribe(mask => {
+    const stringMask = mask ? mask.map(element => `'${element.toString()}'`).join(', ') : null;
+    updateAttribute(this, RxTextInputAttributes.Mask, stringMask ? `[${stringMask}]` : null);
+  });
+
+  data.pattern$.asObservable().subscribe(regExp => {
+    updateAttribute(this, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
+  });
+}
+
+function maskStringToArray(maskString: string): Array<string | RegExp> {
+  let maskStringArray: string[];
+
+  const throwSyntaxError = (mask: string) => {
+    return new Error(
+      `Error on parse mask "${mask}", check syntax. ` +
+        `Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`,
+    );
+  };
+
+  try {
+    maskStringArray = parse(`{mask: ${maskString.replace(/\\/g, '\\\\')}}`).mask;
+  } catch (e) {
+    throw throwSyntaxError(maskString);
+  }
+
+  if (maskStringArray.some(element => !isString(element))) {
+    throw throwSyntaxError(maskString);
+  }
+
+  return maskStringArray.map((element: string) => {
+    if (startsWith(element, '/') && endsWith(element, '/')) {
+      return new RegExp(element.substr(1, element.length - 2));
+    }
+
+    return element;
+  });
+}
+
+function stringToRegExp(stringRegExp: string): RegExp {
+  if (startsWith(stringRegExp, '/') && endsWith(stringRegExp, '/')) {
+    return new RegExp(stringRegExp.substr(1, stringRegExp.length - 2));
+  } else {
+    return new RegExp(stringRegExp);
+  }
+}
+
 interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
   readonly value$: BehaviorSubject<string>;
   readonly mask$: BehaviorSubject<Array<string | RegExp> | null>;
@@ -36,6 +126,35 @@ interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
   readonly name$: BehaviorSubject<string>;
   readonly readonly$: BehaviorSubject<boolean>;
   readonly required$: BehaviorSubject<boolean>;
+}
+
+const privateData: WeakMap<RxTextInput, RxTextInputPrivate> = new WeakMap();
+
+function createPrivate(instance: RxTextInput): RxTextInputPrivate {
+  const data = {
+    mask$: new BehaviorSubject<Array<string | RegExp> | null>(null),
+    name$: new BehaviorSubject<string>(''),
+    pattern$: new BehaviorSubject<RegExp | null>(null),
+    pristine$: new BehaviorSubject(true),
+    readonly$: new BehaviorSubject<boolean>(false),
+    required$: new BehaviorSubject<boolean>(false),
+    untouched$: new BehaviorSubject(true),
+    validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
+    value$: new BehaviorSubject<string>(instance.value),
+  };
+
+  privateData.set(instance, data);
+
+  return data;
+}
+
+function getPrivate(instance: RxTextInput): RxTextInputPrivate {
+  const data = privateData.get(instance);
+  if (data === undefined) {
+    throw new Error('Something wrong =(');
+  }
+
+  return data;
 }
 
 /**
@@ -51,72 +170,6 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
     RxTextInputAttributes.Pattern,
     RxTextInputAttributes.Mask,
   ];
-
-  private static privateData: WeakMap<RxTextInput, RxTextInputPrivate> = new WeakMap();
-
-  private static createPrivate(instance: RxTextInput): RxTextInputPrivate {
-    const privateData = {
-      mask$: new BehaviorSubject<Array<string | RegExp> | null>(null),
-      name$: new BehaviorSubject<string>(''),
-      pattern$: new BehaviorSubject<RegExp | null>(null),
-      pristine$: new BehaviorSubject(true),
-      readonly$: new BehaviorSubject<boolean>(false),
-      required$: new BehaviorSubject<boolean>(false),
-      untouched$: new BehaviorSubject(true),
-      validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-      value$: new BehaviorSubject<string>(instance.value),
-    };
-
-    RxTextInput.privateData.set(instance, privateData);
-
-    return privateData;
-  }
-
-  private static getPrivate(instance: RxTextInput): RxTextInputPrivate {
-    const data = RxTextInput.privateData.get(instance);
-    if (data === undefined) {
-      throw new Error('Something wrong =(');
-    }
-
-    return data;
-  }
-
-  private static maskStringToArray(maskString: string): Array<string | RegExp> {
-    let maskStringArray: string[];
-
-    const throwSyntaxError = (mask: string) => {
-      return new Error(
-        `Error on parse mask "${mask}", check syntax. ` +
-          `Mask must contains array of strings and RegExp's. RegExp must be in quotes ('/\\d/').`,
-      );
-    };
-
-    try {
-      maskStringArray = parse(`{mask: ${maskString.replace(/\\/g, '\\\\')}}`).mask;
-    } catch (e) {
-      throw throwSyntaxError(maskString);
-    }
-
-    if (maskStringArray.some(element => !isString(element))) {
-      throw throwSyntaxError(maskString);
-    }
-
-    return maskStringArray.map((element: string) => {
-      if (startsWith(element, '/') && endsWith(element, '/')) {
-        return new RegExp(element.substr(1, element.length - 2));
-      }
-
-      return element;
-    });
-  }
-
-  private static stringToRegExp(stringRegExp: string): RegExp {
-    if (startsWith(stringRegExp, '/') && endsWith(stringRegExp, '/')) {
-      return new RegExp(stringRegExp.substr(1, stringRegExp.length - 2));
-    } else {
-      return new RegExp(stringRegExp);
-    }
-  }
 
   /**
    * Маска
@@ -142,9 +195,9 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   constructor() {
     super();
 
-    const privateData = RxTextInput.createPrivate(this);
+    const data = createPrivate(this);
 
-    const observables = createControlObservables(privateData);
+    const observables = createControlObservables(data);
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -157,14 +210,14 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
 
-    this.rxMask = RxTextInput.getPrivate(this)
+    this.rxMask = getPrivate(this)
       .mask$.asObservable()
       .pipe(
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
 
-    this.rxPattern = RxTextInput.getPrivate(this)
+    this.rxPattern = getPrivate(this)
       .pattern$.asObservable()
       .pipe(
         distinctUntilChanged(isEqual),
@@ -175,51 +228,51 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
 
     bindControlObservablesToClass.call(this, RxTextInput.tagName, this);
     bindControlObservablesToAttributes.call(this, this);
-    bindControlObservablesToValidators.call(privateData, this);
+    bindControlObservablesToValidators.call(data, this);
 
-    this.bindOnInput();
-    this.bindValidators();
-    this.bindObservablesToAttributes();
+    bindOnInput.call(this);
+    bindValidators.call(this);
+    bindObservablesToAttributes.call(this);
   }
 
   markAsDirty(): void {
-    RxTextInput.getPrivate(this).pristine$.next(false);
+    getPrivate(this).pristine$.next(false);
   }
 
   markAsPristine(): void {
-    RxTextInput.getPrivate(this).pristine$.next(true);
+    getPrivate(this).pristine$.next(true);
   }
 
   markAsTouched(): void {
-    RxTextInput.getPrivate(this).untouched$.next(false);
+    getPrivate(this).untouched$.next(false);
   }
 
   markAsUnTouched(): void {
-    RxTextInput.getPrivate(this).untouched$.next(true);
+    getPrivate(this).untouched$.next(true);
   }
 
   removeValidator(validator: string): void {
-    removeValidator.call(RxTextInput.getPrivate(this), validator);
+    removeValidator.call(getPrivate(this), validator);
   }
 
   setName(name: string): void {
-    RxTextInput.getPrivate(this).name$.next(name);
+    getPrivate(this).name$.next(name);
   }
 
   setReadonly(readonly: boolean): void {
-    RxTextInput.getPrivate(this).readonly$.next(readonly);
+    getPrivate(this).readonly$.next(readonly);
   }
 
   setRequired(required: boolean): void {
-    RxTextInput.getPrivate(this).required$.next(required);
+    getPrivate(this).required$.next(required);
   }
 
   setValidator(name: string, validator: Observable<boolean>): void {
-    setValidator.call(RxTextInput.getPrivate(this), name, validator);
+    setValidator.call(getPrivate(this), name, validator);
   }
 
   setValue(value: string): void {
-    RxTextInput.getPrivate(this).value$.next(value);
+    getPrivate(this).value$.next(value);
     this.markAsDirty();
   }
 
@@ -229,7 +282,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
    * @param mask Маска
    */
   setMask(mask: Array<string | RegExp> | null) {
-    RxTextInput.getPrivate(this).mask$.next(mask);
+    getPrivate(this).mask$.next(mask);
   }
 
   /**
@@ -237,8 +290,8 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
    *
    * @param regExp Паттер для валидации
    */
-  setValidatorPattern(regExp: RegExp | null) {
-    RxTextInput.getPrivate(this).pattern$.next(regExp);
+  setPattern(regExp: RegExp | null) {
+    getPrivate(this).pattern$.next(regExp);
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
@@ -246,20 +299,17 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
       return;
     }
 
+    const data = getPrivate(this);
+
     switch (name) {
       case RxTextInputAttributes.Mask:
-        RxTextInput.getPrivate(this).mask$.next(newValue !== null ? RxTextInput.maskStringToArray(newValue) : null);
+        data.mask$.next(newValue !== null ? maskStringToArray(newValue) : null);
         break;
       case RxTextInputAttributes.Pattern:
-        RxTextInput.getPrivate(this).pattern$.next(newValue !== null ? RxTextInput.stringToRegExp(newValue) : null);
+        data.pattern$.next(newValue !== null ? stringToRegExp(newValue) : null);
         break;
       default:
-        updateControlAttributesBehaviourSubjects.call(
-          RxTextInput.getPrivate(this),
-          name,
-          RxTextInput.tagName,
-          newValue,
-        );
+        updateControlAttributesBehaviourSubjects.call(data, name, RxTextInput.tagName, newValue);
         break;
     }
   }
@@ -273,59 +323,6 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   disconnectedCallback() {
     controlDisconnectedCallback.call(this, RxTextInput.tagName);
   }
-
-  private bindOnInput(): void {
-    const privateData = RxTextInput.getPrivate(this);
-
-    const textInputMaskElement$ = privateData.mask$.asObservable().pipe(
-      map(mask => {
-        if (!mask) {
-          return null;
-        }
-
-        return createTextMaskInputElement({
-          inputElement: this,
-          mask,
-        });
-      }),
-    );
-
-    const onInput$ = fromEvent(this, 'input');
-    combineLatest(onInput$, textInputMaskElement$).subscribe(([_, textInputMaskElement]) => {
-      if (textInputMaskElement === null) {
-        privateData.value$.next(this.value);
-        return;
-      }
-
-      textInputMaskElement.update(this.value);
-      privateData.value$.next(this.value);
-    });
-  }
-
-  private bindValidators(): void {
-    const privateData = RxTextInput.getPrivate(this);
-
-    privateData.pattern$.asObservable().subscribe(regExp => {
-      if (!regExp) {
-        removeValidator.call(privateData, Validators.Pattern);
-      } else {
-        setValidator.call(privateData, Validators.Pattern, pattern(privateData.value$.asObservable(), regExp));
-      }
-    });
-  }
-
-  private bindObservablesToAttributes(): void {
-    const privateData = RxTextInput.getPrivate(this);
-
-    privateData.mask$.asObservable().subscribe(mask => {
-      const stringMask = mask ? mask.map(element => `'${element.toString()}'`).join(', ') : null;
-      updateAttribute(this, RxTextInputAttributes.Mask, stringMask ? `[${stringMask}]` : null);
-    });
-
-    privateData.pattern$.asObservable().subscribe(regExp => {
-      updateAttribute(this, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
-    });
-  }
 }
 
-customElements.define('rx-text-input', RxTextInput, { extends: 'input' });
+customElements.define(RxTextInput.tagName, RxTextInput, { extends: 'input' });

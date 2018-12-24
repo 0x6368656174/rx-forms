@@ -4,27 +4,66 @@ import { Control } from './control';
 import { CustomElement } from './custom-element';
 import { RxFormField } from './rx-form-field';
 
+function findParentFormField(this: RxSuccess): RxFormField<any> {
+  const parentFormFiled = this.closest(RxFormField.tagName);
+  if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
+    throw new Error(`<${RxSuccess.tagName}> must be child of <${RxFormField.tagName}>`);
+  }
+
+  return parentFormFiled;
+}
+
+interface RxSuccessPrivate {
+  readonly unsubscribe$: Subject<void>;
+}
+
+const privateData: WeakMap<RxSuccess, RxSuccessPrivate> = new WeakMap();
+
+function createPrivate(instance: RxSuccess): RxSuccessPrivate {
+  const data = {
+    unsubscribe$: new Subject<void>(),
+  };
+
+  privateData.set(instance, data);
+
+  return data;
+}
+
+function getPrivate(instance: RxSuccess): RxSuccessPrivate {
+  const data = privateData.get(instance);
+  if (data === undefined) {
+    throw new Error('Something wrong =(');
+  }
+
+  return data;
+}
+
 export class RxSuccess extends HTMLElement implements CustomElement {
   /** Тег */
   static readonly tagName = 'rx-success';
 
-  private readonly unsubscribe$ = new Subject<void>();
+  constructor() {
+    super();
+
+    createPrivate(this);
+  }
 
   /** @internal */
   connectedCallback() {
-    this.findParentFormField()
+    findParentFormField
+      .call(this)
       .rxControl.pipe(
         filter((control): control is Control<any> => !!control),
         switchMap(control => combineLatest(control.rxValid, control.rxDirty, control.rxTouched)),
         map(([valid, dirty, touched]) => {
-          // Если контрол не меняли, то усхпех валидации отображена не должен
+          // Если контрол не меняли, то успех валидации отображена не должен
           if (!dirty && !touched) {
             return false;
           }
 
           return valid;
         }),
-        takeUntil(this.unsubscribe$),
+        takeUntil(getPrivate(this).unsubscribe$),
       )
       .subscribe(visible => {
         if (visible) {
@@ -39,16 +78,7 @@ export class RxSuccess extends HTMLElement implements CustomElement {
 
   /** @internal */
   disconnectedCallback() {
-    this.unsubscribe$.next();
-  }
-
-  private findParentFormField(): RxFormField<any> {
-    const parentFormFiled = this.closest(RxFormField.tagName);
-    if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
-      throw new Error(`<${RxSuccess.tagName}> must be child of <${RxFormField.tagName}>`);
-    }
-
-    return parentFormFiled;
+    getPrivate(this).unsubscribe$.next();
   }
 }
 

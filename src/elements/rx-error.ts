@@ -6,41 +6,83 @@ import { CustomElement } from './custom-element';
 import { RxFormField } from './rx-form-field';
 import { updateAttribute } from './utils';
 
+function findParentFormField(this: RxError): RxFormField<any> {
+  const parentFormFiled = this.closest(RxFormField.tagName);
+  if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
+    throw new Error(`<${RxError.tagName}> must be child of <${RxFormField.tagName}>`);
+  }
+
+  return parentFormFiled;
+}
+
+function bindObservablesToAttributes(this: RxError): void {
+  getPrivate(this)
+    .validator$.asObservable()
+    .subscribe(validator => {
+      updateAttribute(this, RxErrorAttributes.Validator, validator);
+    });
+}
+
+function throwAttributeValidatorRequired(): Error {
+  return new Error(`Attribute "${RxErrorAttributes.Validator}"` + ` for <${RxError.tagName}> is required`);
+}
+
 export enum RxErrorAttributes {
   Validator = 'validator',
 }
 
-export class RxError extends HTMLElement implements CustomElement {
-  /**
-   * Валидатор
-   */
-  get validator(): Observable<string> {
-    return this.validator$.asObservable().pipe(
-      distinctUntilChanged(isEqual),
-      shareReplay(1),
-    );
+interface RxErrorPrivate {
+  readonly unsubscribe$: Subject<void>;
+  readonly validator$: BehaviorSubject<string>;
+}
+
+const privateData: WeakMap<RxError, RxErrorPrivate> = new WeakMap();
+
+function createPrivate(instance: RxError): RxErrorPrivate {
+  const data = {
+    unsubscribe$: new Subject<void>(),
+    validator$: new BehaviorSubject<string>(''),
+  };
+
+  privateData.set(instance, data);
+
+  return data;
+}
+
+function getPrivate(instance: RxError): RxErrorPrivate {
+  const data = privateData.get(instance);
+  if (data === undefined) {
+    throw new Error('Something wrong =(');
   }
 
+  return data;
+}
+
+export class RxError extends HTMLElement implements CustomElement {
   /** @internal */
   static readonly observedAttributes = [RxErrorAttributes.Validator];
   /** Тег */
   static readonly tagName = 'rx-error';
-
-  private static throwAttributeValidatorRequired(): Error {
-    return new Error(`Attribute "${RxErrorAttributes.Validator}"` + ` for <${RxError.tagName}> is required`);
-  }
-
-  private readonly validator$ = new BehaviorSubject<string>('');
-  private readonly unsubscribe$ = new Subject<void>();
+  /**
+   * Валидатор
+   */
+  rxValidator: Observable<string>;
 
   constructor() {
     super();
 
+    const data = createPrivate(this);
+
+    this.rxValidator = data.validator$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
+
     if (!this.hasAttribute(RxErrorAttributes.Validator)) {
-      throw RxError.throwAttributeValidatorRequired();
+      throw throwAttributeValidatorRequired();
     }
 
-    this.bindObservablesToAttributes();
+    bindObservablesToAttributes.call(this);
   }
 
   /**
@@ -49,7 +91,7 @@ export class RxError extends HTMLElement implements CustomElement {
    * @param name Название валидатора
    */
   setValidator(name: string): void {
-    this.validator$.next(name);
+    getPrivate(this).validator$.next(name);
   }
 
   /** @internal */
@@ -58,24 +100,29 @@ export class RxError extends HTMLElement implements CustomElement {
       return;
     }
 
+    const data = getPrivate(this);
+
     switch (name) {
       case RxErrorAttributes.Validator:
         if (!newValue) {
-          throw RxError.throwAttributeValidatorRequired();
+          throw throwAttributeValidatorRequired();
         }
 
-        this.validator$.next(newValue);
+        data.validator$.next(newValue);
         break;
     }
   }
 
   /** @internal */
   connectedCallback() {
-    this.findParentFormField()
+    const data = getPrivate(this);
+
+    findParentFormField
+      .call(this)
       .rxControl.pipe(
         filter((control): control is Control<any> => !!control),
         switchMap(control => combineLatest(control.rxValidationErrors, control.rxDirty, control.rxTouched)),
-        withLatestFrom(this.validator$),
+        withLatestFrom(getPrivate(this).validator$),
         map(([[validationErrors, dirty, touched], validator]) => {
           // Если контрол не меняли, то ошибка валидации отображена не должна
           if (!dirty && !touched) {
@@ -84,7 +131,7 @@ export class RxError extends HTMLElement implements CustomElement {
 
           return validationErrors.indexOf(validator) !== -1;
         }),
-        takeUntil(this.unsubscribe$),
+        takeUntil(data.unsubscribe$),
       )
       .subscribe(visible => {
         if (visible) {
@@ -99,22 +146,7 @@ export class RxError extends HTMLElement implements CustomElement {
 
   /** @internal */
   disconnectedCallback() {
-    this.unsubscribe$.next();
-  }
-
-  private bindObservablesToAttributes(): void {
-    this.validator$.asObservable().subscribe(validator => {
-      updateAttribute(this, RxErrorAttributes.Validator, validator);
-    });
-  }
-
-  private findParentFormField(): RxFormField<any> {
-    const parentFormFiled = this.closest(RxFormField.tagName);
-    if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
-      throw new Error(`<${RxError.tagName}> must be child of <${RxFormField.tagName}>`);
-    }
-
-    return parentFormFiled;
+    getPrivate(this).unsubscribe$.next();
   }
 }
 
