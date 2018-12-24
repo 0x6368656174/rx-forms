@@ -269,6 +269,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
 
   setValue(value: string): void {
     getPrivate(this).value$.next(value);
+    this.value = value;
     this.markAsDirty();
   }
 

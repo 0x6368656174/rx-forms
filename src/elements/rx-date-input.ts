@@ -276,7 +276,21 @@ export class RxDateInput extends HTMLInputElement implements Control<DateTime | 
   }
 
   setValue(value: DateTime | null): void {
+    const data = getPrivate(this);
+
     getPrivate(this).value$.next(value);
+    const format = data.format$.getValue();
+    const locale = data.locale$.getValue();
+    if (value === null) {
+      this.value = '';
+    } else {
+      if (locale) {
+        this.value = value.setLocale(locale).toFormat(format);
+      } else {
+        this.value = value.toFormat(format);
+      }
+    }
+
     this.markAsDirty();
   }
 

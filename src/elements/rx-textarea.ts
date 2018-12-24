@@ -143,6 +143,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
   setValue(value: string): void {
     getPrivate(this).value$.next(value);
+    this.value = value;
     this.markAsDirty();
   }
 
