@@ -108,6 +108,26 @@
     </rx-form-field>
 </div>
 
+<div>
+    <rx-form-field>
+        <label>
+            Селект
+
+            <select is="rx-select"
+                   name="select"
+                   required
+            >
+                <option value> -- Выберите опцию -- </option>
+                <option value="option-1">Опция 1</option>
+                <option value="option-2">Опция 2</option>
+            </select>
+        </label>
+
+        <rx-success>Селект выбран</rx-success>
+        <rx-error validator="required">Выберите селект</rx-error>
+    </rx-form-field>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
@@ -143,6 +163,9 @@
 
     document.querySelector('input[name="checkbox"]').rxValue.subscribe(v => console.log(`Checkbox: ${v}`));
     document.querySelector('input[name="checkbox"]').rxValid.subscribe(v => console.log(`Checkbox valid: ${v}`));
+
+    document.querySelector('select[name="select"]').rxValue.subscribe(v => console.log(`Select value: ${v}`));
+    document.querySelector('select[name="select"]').rxValid.subscribe(v => console.log(`Select valid: ${v}`));
 </script>
 </body>
 </html>
