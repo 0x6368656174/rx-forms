@@ -91,6 +91,23 @@
     </rx-form-field>
 </div>
 
+<div>
+    <rx-form-field>
+        <label>
+            Чекбокс
+
+            <input is="rx-checkbox-input"
+                   type="checkbox"
+                   name="checkbox"
+                   required
+            >
+        </label>
+
+        <rx-success>Чекбокс выбран</rx-success>
+        <rx-error validator="required">Выберите чекбокс</rx-error>
+    </rx-form-field>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
@@ -100,8 +117,10 @@
 <script>
     document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone: ${v}`));
     document.querySelector('input[name="phone"]').rxValid.subscribe(v => console.log(`Phone valid: ${v}`));
+
     document.querySelector('textarea[name="text"]').rxValue.subscribe(v => console.log(`Text value: ${v}`));
     document.querySelector('textarea[name="text"]').rxValid.subscribe(v => console.log(`Text valid: ${v}`));
+
     document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date: ${v}`));
     document.querySelector('input[name="date"]').rxValid.subscribe(v => console.log(`Date valid: ${v}`));
     const dateInput = document.querySelector('input[name="date"]');
@@ -121,6 +140,9 @@
         dateInput.setValue(dateTime);
       }
     });
+
+    document.querySelector('input[name="checkbox"]').rxValue.subscribe(v => console.log(`Checkbox: ${v}`));
+    document.querySelector('input[name="checkbox"]').rxValid.subscribe(v => console.log(`Checkbox valid: ${v}`));
 </script>
 </body>
 </html>
