@@ -43,6 +43,7 @@ module.exports = {
           'endsWith',
           'isString',
           'isEqual',
+          'flatMap',
         ],
         'node_modules/json5/lib/index.js': [
           'parse',

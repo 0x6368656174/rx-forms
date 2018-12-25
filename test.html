@@ -1,6 +1,8 @@
 <html>
 <head>
     <title>Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker/dist/css/datepicker.min.css">
     <style>
         .rx-text-input--touched.rx-text-input--invalid input {
             border-color: red;
@@ -74,11 +76,11 @@
         <label>
             Дата
 
-            <input is="rx-date-input"
+            <input is="rx-date-time-input"
                    name="date"
                    required
-                   value="16.10.1988"
-                   format="dd.MM.yyyy"
+                   value="16.10.1988, 03:21"
+                   format="dd.MM.yyyy, HH:mm"
                    locale="ru"
             >
         </label>
@@ -89,6 +91,11 @@
     </rx-form-field>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/air-datepicker/dist/js/datepicker.min.js"></script>
 <script src="./dist/rx-forms.cjs.js.js"></script>
 <script>
     document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone: ${v}`));
@@ -97,6 +104,23 @@
     document.querySelector('textarea[name="text"]').rxValid.subscribe(v => console.log(`Text valid: ${v}`));
     document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date: ${v}`));
     document.querySelector('input[name="date"]').rxValid.subscribe(v => console.log(`Date valid: ${v}`));
+    const dateInput = document.querySelector('input[name="date"]');
+    // flatpickr(dateInput, {
+    //   enableTime: true,
+    //   dateFormat: 'd.m.Y, H:i',
+    //   time_24hr: true,
+    //   locale: 'ru',
+    // });
+    $(dateInput).datepicker({
+      timepicker: true,
+      dateFormat: 'dd.mm.yyyy',
+      dateTimeSeparator: ', ',
+      timeFormat: 'hh:ii',
+      onSelect: (_, date) => {
+        const dateTime = date ? luxon.DateTime.fromJSDate(date) : null;
+        dateInput.setValue(dateTime);
+      }
+    });
 </script>
 </body>
 </html>

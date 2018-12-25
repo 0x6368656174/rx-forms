@@ -1,4 +1,4 @@
-import { isEqual } from 'lodash';
+import { flatMap, isEqual } from 'lodash';
 import { DateTime } from 'luxon';
 import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
@@ -19,16 +19,52 @@ import {
 } from './control';
 import { updateAttribute } from './utils';
 
-enum RxDateInputAttributes {
+enum RxDateTimeInputAttributes {
   Format = 'format',
   Locale = 'locale',
 }
 
 function throwAttributeFormatRequired(): Error {
-  return new Error(`Attribute "${RxDateInputAttributes.Format}" for <${RxDateInput.tagName}> is required`);
+  return new Error(`Attribute "${RxDateTimeInputAttributes.Format}" for <${RxDateTimeInput.tagName}> is required`);
 }
 
-function bindOnInput(this: RxDateInput): void {
+// Взято из https://github.com/moment/luxon/blob/master/src/impl/formatter.js#L49
+function parseFormat(fmt: string) {
+  let current = null;
+  let currentFull = '';
+  let bracketed = false;
+
+  const splits = [];
+  for (let i = 0; i < fmt.length; i++) {
+    const c = fmt.charAt(i);
+    if (c === "'") {
+      if (currentFull.length > 0) {
+        splits.push({ literal: bracketed, val: currentFull });
+      }
+      current = null;
+      currentFull = '';
+      bracketed = !bracketed;
+    } else if (bracketed) {
+      currentFull += c;
+    } else if (c === current) {
+      currentFull += c;
+    } else {
+      if (currentFull.length > 0) {
+        splits.push({ literal: false, val: currentFull });
+      }
+      currentFull = c;
+      current = c;
+    }
+  }
+
+  if (currentFull.length > 0) {
+    splits.push({ literal: bracketed, val: currentFull });
+  }
+
+  return splits;
+}
+
+function bindOnInput(this: RxDateTimeInput): void {
   const data = getPrivate(this);
 
   const textInputMaskElement$ = data.format$.asObservable().pipe(
@@ -37,29 +73,95 @@ function bindOnInput(this: RxDateInput): void {
         return null;
       }
 
-      const mask = format.split('').map(char => {
-        switch (char) {
-          case '.':
-          case ',':
-          case '-':
-          case '/':
-          case '\\':
-          case ' ':
-            return char;
-          case 'd':
-          case 'M':
-          case 'L':
-          case 'y':
-            return /\d/;
-          default:
-            return null;
-        }
-      });
+      const mask = flatMap(
+        parseFormat(format).map(token => {
+          switch (token.val) {
+            case 'S':
+              return [/\d?/, /\d?/, /\d/];
+            case 'u':
+            case 'SSS':
+              return [/\d/, /\d/, /\d/];
+            case 's':
+              return [/[1-5]?/, /\d/];
+            case 'ss':
+              return [/[0-5]/, /\d/];
+            case 'm':
+              return [/[1-5]?/, /\d/];
+            case 'mm':
+              return [/[0-5]/, /\d/];
+            case 'h':
+              return [/1?/, /\d/];
+            case 'hh':
+              return [/[0-1]/, /\d/];
+            case 'H':
+              return [/[1-2]?/, /\d/];
+            case 'HH':
+              return [/[0-2]/, /\d/];
+            case 'a':
+              return [/[AP]/, 'M'];
+            case 'd':
+              return [/[1-3]?/, /\d/];
+            case 'dd':
+              return [/[0-3]/, /\d/];
+            case 'E':
+            case 'c':
+              return [/[1-7]/];
+            case 'L':
+            case 'M':
+              return [/1?/, /\d/];
+            case 'LL':
+            case 'MM':
+              return [/[0-1]/, /\d/];
+            case 'y':
+              return [/\d?/, /\d?/, /\d?/, /\d/];
+            case 'yy':
+              return [/\d/, /\d/];
+            case 'yyyy':
+              return [/\d/, /\d/, /\d/, /\d/];
+            case 'yyyyy':
+              return [/\d?/, /\d?/, /\d/, /\d/, /\d/, /\d/];
+            case 'yyyyyy':
+              return [/\d/, /\d/, /\d/, /\d/, /\d/, /\d/];
+            case 'k':
+              return [/\d?/, /\d?/, /\d?/, /\d/];
+            case 'kkkk':
+              return [/\d/, /\d/, /\d/, /\d/];
+            case 'W':
+              return [/\d?/, /\d/];
+            case 'WWWWW':
+              return [/\d/, /\d/, /\d/, /\d/];
+            case 'q':
+              return [/0?/, /\d/];
+            case 'qq':
+              return [/0/, /\d/];
+            case 'o':
+              return [/\d?/, /\d?/, /\d/];
+            case 'ooo':
+              return [/\d/, /\d/, /\d/];
+            case 'z':
+            case 'Z':
+            case 'ZZ':
+            case 'ZZZ':
+            case 'cc':
+            case 'ccc':
+            case 'EE':
+            case 'EEE':
+            case 'MMM':
+            case 'MMMM':
+            case 'G':
+            case 'GG':
+            case 'GGGGG':
+              return null;
+            default:
+              return [token.val];
+          }
+        }),
+      );
 
       // Если хоть одну из букв не смогли превратить в маску, то маску включать не будем
       if (mask.some(char => char === null)) {
         console.info(
-          `Format "${format}" can not convert to <${RxDateInput.tagName}> mask.` +
+          `Format "${format}" can not convert to <${RxDateTimeInput.tagName}> mask.` +
             ` Supported only digital mask. Mask disabled.`,
         );
         return null;
@@ -94,7 +196,7 @@ function bindOnInput(this: RxDateInput): void {
   );
 }
 
-function bindValidators(this: RxDateInput): void {
+function bindValidators(this: RxDateTimeInput): void {
   const data = getPrivate(this);
 
   const validator = this.rxValue.pipe(map(value => (value !== null ? value.isValid : true)));
@@ -102,22 +204,23 @@ function bindValidators(this: RxDateInput): void {
   setValidator(data, Validators.Format, validator);
 }
 
-function bindObservablesToAttributes(this: RxDateInput): void {
+function bindObservablesToAttributes(this: RxDateTimeInput): void {
   const data = getPrivate(this);
 
   data.format$.asObservable().subscribe(format => {
-    updateAttribute(this, RxDateInputAttributes.Format, format);
+    updateAttribute(this, RxDateTimeInputAttributes.Format, format);
   });
 
   data.locale$.asObservable().subscribe(locale => {
-    updateAttribute(this, RxDateInputAttributes.Locale, locale);
+    updateAttribute(this, RxDateTimeInputAttributes.Locale, locale);
   });
 }
 
 interface RxTextInputPrivate extends ControlBehaviourSubjects<DateTime | null> {
-  readonly value$: BehaviorSubject<DateTime | null>;
   readonly format$: BehaviorSubject<string>;
   readonly locale$: BehaviorSubject<string | null>;
+
+  readonly value$: BehaviorSubject<DateTime | null>;
   readonly validators$: BehaviorSubject<ValidatorsMap>;
   readonly pristine$: BehaviorSubject<boolean>;
   readonly untouched$: BehaviorSubject<boolean>;
@@ -126,15 +229,15 @@ interface RxTextInputPrivate extends ControlBehaviourSubjects<DateTime | null> {
   readonly required$: BehaviorSubject<boolean>;
 }
 
-const privateData: WeakMap<RxDateInput, RxTextInputPrivate> = new WeakMap();
+const privateData: WeakMap<RxDateTimeInput, RxTextInputPrivate> = new WeakMap();
 
-function createPrivate(instance: RxDateInput): RxTextInputPrivate {
-  const format = instance.getAttribute(RxDateInputAttributes.Format);
+function createPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
+  const format = instance.getAttribute(RxDateTimeInputAttributes.Format);
   if (format === null) {
     throw throwAttributeFormatRequired();
   }
 
-  const locale = instance.getAttribute(RxDateInputAttributes.Format);
+  const locale = instance.getAttribute(RxDateTimeInputAttributes.Format);
   const value = DateTime.fromFormat(instance.value, format, { locale: locale || undefined });
 
   const data = {
@@ -154,7 +257,7 @@ function createPrivate(instance: RxDateInput): RxTextInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxDateInput): RxTextInputPrivate {
+function getPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -166,15 +269,15 @@ function getPrivate(instance: RxDateInput): RxTextInputPrivate {
 /**
  * Поле ввода даты
  */
-export class RxDateInput extends HTMLInputElement implements Control<DateTime | null> {
+export class RxDateTimeInput extends HTMLInputElement implements Control<DateTime | null> {
   /** Тэг */
-  static readonly tagName: string = 'rx-date-input';
+  static readonly tagName: string = 'rx-date-time-input';
 
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
-    RxDateInputAttributes.Format,
-    RxDateInputAttributes.Locale,
+    RxDateTimeInputAttributes.Format,
+    RxDateTimeInputAttributes.Locale,
   ];
 
   /**
@@ -232,7 +335,7 @@ export class RxDateInput extends HTMLInputElement implements Control<DateTime | 
 
     fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
 
-    prepareControl(this, RxDateInput.tagName, data);
+    prepareControl(this, RxDateTimeInput.tagName, data);
 
     bindOnInput.call(this);
     bindValidators.call(this);
@@ -320,30 +423,30 @@ export class RxDateInput extends HTMLInputElement implements Control<DateTime | 
     const data = getPrivate(this);
 
     switch (name) {
-      case RxDateInputAttributes.Format:
+      case RxDateTimeInputAttributes.Format:
         if (!newValue) {
           throw throwAttributeFormatRequired();
         }
         data.format$.next(newValue);
         break;
-      case RxDateInputAttributes.Locale:
+      case RxDateTimeInputAttributes.Locale:
         data.locale$.next(newValue);
         break;
       default:
-        updateControlAttributesBehaviourSubjects(data, name, RxDateInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(data, name, RxDateTimeInput.tagName, newValue);
         break;
     }
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxDateInput.tagName);
+    controlConnectedCallback(this, RxDateTimeInput.tagName);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxDateInput.tagName);
+    controlDisconnectedCallback(this, RxDateTimeInput.tagName);
   }
 }
 
-customElements.define(RxDateInput.tagName, RxDateInput, { extends: 'input' });
+customElements.define(RxDateTimeInput.tagName, RxDateTimeInput, { extends: 'input' });
