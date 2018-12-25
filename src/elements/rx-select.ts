@@ -12,6 +12,11 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { RxSelectMultiple } from './rx-select-multiple';
+
+enum RxSelectAttributes {
+  Multiple = 'multiple',
+}
 
 function bindOnInput(this: RxSelect): void {
   const data = getPrivate(this);
@@ -19,6 +24,14 @@ function bindOnInput(this: RxSelect): void {
   fromEvent(this, 'change').subscribe(() => {
     data.value$.next(this.value);
   });
+}
+
+function throwAttributeMultipleNotSupported(): Error {
+  return new Error(
+    `Attribute "${RxSelectAttributes.Multiple}" not supported by <${RxSelect.tagName}>, use <${
+      RxSelectMultiple.tagName
+    }> instead.`,
+  );
 }
 
 interface RxSelectPrivate extends ControlBehaviourSubjects<string> {
@@ -66,7 +79,7 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   static readonly tagName: string = 'rx-select';
 
   /** @internal */
-  static readonly observedAttributes = controlObservedAttributes;
+  static readonly observedAttributes = [...controlObservedAttributes, RxSelectAttributes.Multiple];
 
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
@@ -82,6 +95,10 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
 
   constructor() {
     super();
+
+    if (this.hasAttribute(RxSelectAttributes.Multiple)) {
+      throw throwAttributeMultipleNotSupported();
+    }
 
     const data = createPrivate(this);
 
@@ -154,7 +171,17 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
 
     const data = getPrivate(this);
 
-    updateControlAttributesBehaviourSubjects(data, name, RxSelect.tagName, newValue);
+    switch (name) {
+      case RxSelectAttributes.Multiple:
+        if (newValue !== null) {
+          throw throwAttributeMultipleNotSupported();
+        }
+
+        break;
+      default:
+        updateControlAttributesBehaviourSubjects(data, name, RxSelectMultiple.tagName, newValue);
+        break;
+    }
   }
 
   /** @internal */

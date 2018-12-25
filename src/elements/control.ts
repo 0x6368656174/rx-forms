@@ -153,7 +153,15 @@ function bindControlObservablesToValidators(
     if (!required) {
       removeValidator(control, ValidatorsName.Required);
     } else {
-      const validator = observables.rxValue.pipe(map(value => !!value));
+      const validator = observables.rxValue.pipe(
+        map(value => {
+          if (Array.isArray(value)) {
+            return value.length !== 0;
+          }
+
+          return !!value;
+        }),
+      );
 
       setValidator(control, ValidatorsName.Required, validator);
     }

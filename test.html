@@ -128,6 +128,28 @@
     </rx-form-field>
 </div>
 
+<div>
+    <rx-form-field>
+        <label>
+            Мультипл Селект
+
+            <select is="rx-select-multiple"
+                    name="select-multiple[]"
+                    multiple
+                    required
+            >
+                <option value="option-1">Опция 1</option>
+                <option value="option-2">Опция 2</option>
+                <option value="option-3">Опция 3</option>
+                <option value="option-4">Опция 4</option>
+            </select>
+        </label>
+
+        <rx-success>Селект выбран</rx-success>
+        <rx-error validator="required">Выберите селект</rx-error>
+    </rx-form-field>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
@@ -166,6 +188,9 @@
 
     document.querySelector('select[name="select"]').rxValue.subscribe(v => console.log(`Select value: ${v}`));
     document.querySelector('select[name="select"]').rxValid.subscribe(v => console.log(`Select valid: ${v}`));
+
+    document.querySelector('select[name="select-multiple[]"]').rxValue.subscribe(v => console.log(`Multiple select value: ${v}`));
+    document.querySelector('select[name="select-multiple[]"]').rxValid.subscribe(v => console.log(`Multiple select valid: ${v}`));
 </script>
 </body>
 </html>
