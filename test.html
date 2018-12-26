@@ -123,6 +123,28 @@
 <div>
     <rx-form-field>
         <label>
+            Число
+
+            <input is="rx-input-range"
+                   type="range"
+                   name="range"
+                   required
+                   min="-20"
+                   max="20"
+            >
+        </label>
+
+        <rx-success>Число введено</rx-success>
+        <rx-error validator="required">Заполните данное поле</rx-error>
+        <rx-error validator="format">Введите верное число</rx-error>
+        <rx-error validator="min">Введите большее число</rx-error>
+        <rx-error validator="max">Введите меньшее число</rx-error>
+    </rx-form-field>
+</div>
+
+<div>
+    <rx-form-field>
+        <label>
             Чекбокс
 
             <input is="rx-input-checkbox"
@@ -246,6 +268,9 @@
 
     document.querySelector('input[name="number"]').rxValue.subscribe(v => console.log(`Number value: ${v}`));
     document.querySelector('input[name="number"]').rxValid.subscribe(v => console.log(`Number valid: ${v}`));
+
+    document.querySelector('input[name="range"]').rxValue.subscribe(v => console.log(`Range value: ${v}`));
+    document.querySelector('input[name="range"]').rxValid.subscribe(v => console.log(`Range valid: ${v}`));
 </script>
 </body>
 </html>

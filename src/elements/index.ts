@@ -4,6 +4,7 @@ export * from './rx-input-number';
 export * from './rx-input-date-time';
 export * from './rx-input-checkbox';
 export * from './rx-input-radio';
+export * from './rx-input-range';
 export * from './rx-textarea';
 export * from './rx-select';
 export * from './rx-select-multiple';
