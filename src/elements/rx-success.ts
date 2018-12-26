@@ -1,5 +1,6 @@
-import { combineLatest, Subject } from 'rxjs';
-import { filter, map, switchMap, takeUntil } from 'rxjs/operators';
+import { isEqual } from 'lodash';
+import { combineLatest, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 import { Control } from './control';
 import { CustomElement } from './custom-element';
 import { RxFormField } from './rx-form-field';
@@ -14,14 +15,14 @@ function findParentFormField(this: RxSuccess): RxFormField<any> {
 }
 
 interface RxSuccessPrivate {
-  readonly unsubscribe$: Subject<void>;
+  readonly disconnected$: Subject<void>;
 }
 
 const privateData: WeakMap<RxSuccess, RxSuccessPrivate> = new WeakMap();
 
 function createPrivate(instance: RxSuccess): RxSuccessPrivate {
   const data = {
-    unsubscribe$: new Subject<void>(),
+    disconnected$: new Subject<void>(),
   };
 
   privateData.set(instance, data);
@@ -42,10 +43,18 @@ export class RxSuccess extends HTMLElement implements CustomElement {
   /** Тег */
   static readonly tagName = 'rx-success';
 
+  /** Вызывается, когда элемент удален из DOM */
+  readonly rxDisconnected: Observable<void>;
+
   constructor() {
     super();
 
-    createPrivate(this);
+    const data = createPrivate(this);
+
+    this.rxDisconnected = data.disconnected$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
   /** @internal */
@@ -63,7 +72,7 @@ export class RxSuccess extends HTMLElement implements CustomElement {
 
           return valid;
         }),
-        takeUntil(getPrivate(this).unsubscribe$),
+        takeUntil(this.rxDisconnected),
       )
       .subscribe(visible => {
         if (visible) {
@@ -78,7 +87,7 @@ export class RxSuccess extends HTMLElement implements CustomElement {
 
   /** @internal */
   disconnectedCallback() {
-    getPrivate(this).unsubscribe$.next();
+    getPrivate(this).disconnected$.next();
   }
 }
 

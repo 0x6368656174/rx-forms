@@ -15,12 +15,14 @@ function findParentFormField(this: RxError): RxFormField<any> {
   return parentFormFiled;
 }
 
-function bindObservablesToAttributes(this: RxError): void {
-  getPrivate(this)
-    .validator$.asObservable()
-    .subscribe(validator => {
-      updateAttribute(this, RxErrorAttributes.Validator, validator);
-    });
+function subscribeToAttributeObservables(control: RxError): void {
+  control.rxValidator.pipe(takeUntil(control.rxDisconnected)).subscribe(validator => {
+    updateAttribute(control, RxErrorAttributes.Validator, validator);
+  });
+}
+
+function subscribeToObservables(control: RxError): void {
+  subscribeToAttributeObservables(control);
 }
 
 function throwAttributeValidatorRequired(): Error {
@@ -32,7 +34,7 @@ export enum RxErrorAttributes {
 }
 
 interface RxErrorPrivate {
-  readonly unsubscribe$: Subject<void>;
+  readonly disconnected$: Subject<void>;
   readonly validator$: BehaviorSubject<string>;
 }
 
@@ -40,7 +42,7 @@ const privateData: WeakMap<RxError, RxErrorPrivate> = new WeakMap();
 
 function createPrivate(instance: RxError): RxErrorPrivate {
   const data = {
-    unsubscribe$: new Subject<void>(),
+    disconnected$: new Subject<void>(),
     validator$: new BehaviorSubject<string>(''),
   };
 
@@ -66,10 +68,16 @@ export class RxError extends HTMLElement implements CustomElement {
   /**
    * Валидатор
    */
-  rxValidator: Observable<string>;
+  readonly rxValidator: Observable<string>;
+  /** Вызывается, когда элемент удален из DOM */
+  readonly rxDisconnected: Observable<void>;
 
   constructor() {
     super();
+
+    if (!this.hasAttribute(RxErrorAttributes.Validator)) {
+      throw throwAttributeValidatorRequired();
+    }
 
     const data = createPrivate(this);
 
@@ -78,11 +86,10 @@ export class RxError extends HTMLElement implements CustomElement {
       shareReplay(1),
     );
 
-    if (!this.hasAttribute(RxErrorAttributes.Validator)) {
-      throw throwAttributeValidatorRequired();
-    }
-
-    bindObservablesToAttributes.call(this);
+    this.rxDisconnected = data.disconnected$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
   /**
@@ -113,8 +120,6 @@ export class RxError extends HTMLElement implements CustomElement {
 
   /** @internal */
   connectedCallback() {
-    const data = getPrivate(this);
-
     findParentFormField
       .call(this)
       .rxControl.pipe(
@@ -129,7 +134,7 @@ export class RxError extends HTMLElement implements CustomElement {
 
           return validationErrors.indexOf(validator) !== -1;
         }),
-        takeUntil(data.unsubscribe$),
+        takeUntil(this.rxDisconnected),
       )
       .subscribe(visible => {
         if (visible) {
@@ -140,11 +145,13 @@ export class RxError extends HTMLElement implements CustomElement {
           this.classList.add(`${RxError.tagName}--hidden`);
         }
       });
+
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
-    getPrivate(this).unsubscribe$.next();
+    getPrivate(this).disconnected$.next();
   }
 }
 
