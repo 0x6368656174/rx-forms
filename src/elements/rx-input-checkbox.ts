@@ -34,6 +34,7 @@ const privateData: WeakMap<RxInputCheckbox, RxInputCheckboxPrivate> = new WeakMa
 
 function createPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
@@ -89,6 +90,8 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<boolean>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -110,6 +113,8 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
 
     this.rxSet = this.rxValue.pipe(
       distinctUntilChanged(isEqual),
@@ -157,6 +162,14 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
     getPrivate(this).value$.next(checked);
     updateAttribute(this, 'checked', checked ? '' : null);
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {

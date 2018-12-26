@@ -122,12 +122,14 @@ enum ControlAttributes {
   Name = 'name',
   Readonly = 'readonly',
   Required = 'required',
+  Disabled = 'disabled',
 }
 
 interface ControlAttributeObservables extends DisconnectedObservable {
   rxName: Observable<string>;
   rxReadonly: Observable<boolean>;
   rxRequired: Observable<boolean>;
+  rxDisabled: Observable<boolean>;
 }
 
 /**
@@ -147,6 +149,10 @@ function bindControlObservablesToAttributes(element: HTMLElement, observables: C
 
   observables.rxRequired.pipe(takeUntil(observables.rxDisconnected)).subscribe(required => {
     updateAttribute(element, ControlAttributes.Required, required ? '' : null);
+  });
+
+  observables.rxDisabled.pipe(takeUntil(observables.rxDisconnected)).subscribe(disabled => {
+    updateAttribute(element, ControlAttributes.Disabled, disabled ? '' : null);
   });
 }
 
@@ -181,6 +187,7 @@ function bindControlObservablesToValidators<T>(control: Control<T>): void {
 export const controlObservedAttributes: string[] = [
   ControlAttributes.Name,
   ControlAttributes.Readonly,
+  ControlAttributes.Disabled,
   ControlAttributes.Required,
 ];
 
@@ -240,6 +247,7 @@ export function findParentFormField<T>(element: HTMLElement, tagName: string): R
 interface ControlAttributesBehaviorSubjects {
   name$: BehaviorSubject<string>;
   readonly$: BehaviorSubject<boolean>;
+  disabled$: BehaviorSubject<boolean>;
   required$: BehaviorSubject<boolean>;
 }
 
@@ -268,6 +276,9 @@ export function updateControlAttributesBehaviourSubjects<T>(
     case ControlAttributes.Readonly:
       control.setReadonly(value !== null);
       break;
+    case ControlAttributes.Disabled:
+      control.setDisabled(value !== null);
+      break;
     case ControlAttributes.Required:
       control.setRequired(value !== null);
       break;
@@ -294,6 +305,7 @@ export interface ControlObservables<T>
   rxInvalid: Observable<boolean>;
   rxValidationErrors: Observable<string[]>;
   rxSet: Observable<boolean>;
+  rxEnabled: Observable<boolean>;
 }
 
 export function createControlObservables<T>(behaviourSubjects: ControlBehaviourSubjects<T>): ControlObservables<T> {
@@ -301,6 +313,8 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
   const rxDirty = rxPristine.pipe(map(value => !value));
   const rxUntouched = behaviourSubjects.untouched$.asObservable();
   const rxTouched = rxUntouched.pipe(map(value => !value));
+  const rxDisabled = behaviourSubjects.disabled$.asObservable();
+  const rxEnabled = rxDisabled.pipe(map(value => !value));
 
   const rxValid = behaviourSubjects.validators$.asObservable().pipe(
     switchMap(validators => {
@@ -365,7 +379,9 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
 
   return {
     rxDirty,
+    rxDisabled,
     rxDisconnected,
+    rxEnabled,
     rxInvalid,
     rxName,
     rxPristine,
@@ -383,6 +399,10 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
 export interface Control<T> extends ControlObservables<T> {
   /** Значение контрола */
   readonly rxValue: Observable<T>;
+  /** Признак того, что поле доступно для редактирования */
+  readonly rxEnabled: Observable<boolean>;
+  /** Признак того, что поле НЕ доступно для редактирования */
+  readonly rxDisabled: Observable<boolean>;
   /** Признак того, что поле обязательное */
   readonly rxRequired: Observable<boolean>;
   /** Признак того, что поле доступно только для чтения */
@@ -435,6 +455,20 @@ export interface Control<T> extends ControlObservables<T> {
    * @param readonly Признак того, что поле доступно только для чтения
    */
   setReadonly(readonly: boolean): void;
+
+  /**
+   * Устанавливает признак того, что поле должно быть доступно для редактирования
+   *
+   * @param enabled Признак того, что поле доступно для редактирования
+   */
+  setEnabled(enabled: boolean): void;
+
+  /**
+   * Устанавливает признак того, что поле НЕ должно быть доступно для редактирования
+   *
+   * @param disabled Признак того, что поле НЕ доступно для редактирования
+   */
+  setDisabled(disabled: boolean): void;
 
   /**
    * Устанавливает валидатор

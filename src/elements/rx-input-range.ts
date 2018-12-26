@@ -49,6 +49,7 @@ const privateData: WeakMap<RxInputRange, RxInputRangePrivate> = new WeakMap();
 
 function createPrivate(instance: RxInputRange): RxInputRangePrivate {
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     max$: new BehaviorSubject<number | null>(null),
     min$: new BehaviorSubject<number | null>(null),
@@ -154,6 +155,8 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<number>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -176,6 +179,8 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxSet = of(true);
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
 
     this.rxMax = getPrivate(this)
       .max$.asObservable()
@@ -234,6 +239,14 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
     getPrivate(this).value$.next(value);
     this.value = value.toString();
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 
   /**

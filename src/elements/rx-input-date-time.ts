@@ -287,6 +287,7 @@ function createPrivate(instance: RxInputDateTime): RxInputDateTimePrivate {
   const min = instance.min ? DateTime.fromFormat(instance.min, format, { locale: locale || undefined }) : null;
 
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     format$: new BehaviorSubject<string>(format),
     locale$: new BehaviorSubject<string | null>(locale),
@@ -368,6 +369,8 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<DateTime | null>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -390,6 +393,8 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxSet = observables.rxSet;
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
 
     this.rxFormat = getPrivate(this)
       .format$.asObservable()
@@ -475,6 +480,14 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
     }
 
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 
   /**

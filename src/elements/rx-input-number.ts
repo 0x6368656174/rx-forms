@@ -52,6 +52,7 @@ function createPrivate(instance: RxInputNumber): RxInputNumberPrivate {
   const value: number | null = instance.value ? Number(instance.value.replace(',', '.')) : null;
 
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     max$: new BehaviorSubject<number | null>(null),
     min$: new BehaviorSubject<number | null>(null),
@@ -157,6 +158,8 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<number | null>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -179,6 +182,8 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxSet = observables.rxSet;
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
 
     this.rxMax = getPrivate(this)
       .max$.asObservable()
@@ -237,6 +242,14 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     getPrivate(this).value$.next(value);
     this.value = value ? value.toString() : '';
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 
   /**

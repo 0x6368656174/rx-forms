@@ -91,6 +91,8 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string | null>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -113,6 +115,8 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
     this.rxInvalid = data.control$.asObservable().pipe(switchMap(control => control.rxInvalid));
     this.rxValidationErrors = data.control$.asObservable().pipe(switchMap(control => control.rxValidationErrors));
     this.rxSet = data.control$.asObservable().pipe(switchMap(control => control.rxSet));
+    this.rxEnabled = data.control$.asObservable().pipe(switchMap(control => control.rxEnabled));
+    this.rxDisabled = data.control$.asObservable().pipe(switchMap(control => control.rxDisabled));
   }
 
   markAsDirty(): void {
@@ -153,6 +157,14 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
 
   setValue(value: string): void {
     getControl(this).setValue(value);
+  }
+
+  setEnabled(enabled: boolean): void {
+    getControl(this).setEnabled(enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getControl(this).setDisabled(disabled);
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {

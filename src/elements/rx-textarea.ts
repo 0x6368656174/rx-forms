@@ -51,6 +51,7 @@ const privateData: WeakMap<RxTextarea, RxTextareaPrivate> = new WeakMap();
 
 function createPrivate(instance: RxTextarea): RxTextareaPrivate {
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     maxLength$: new BehaviorSubject<number | null>(null),
     minLength$: new BehaviorSubject<number | null>(null),
@@ -150,6 +151,8 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     super();
@@ -171,6 +174,8 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
 
     this.rxMaxLength = getPrivate(this)
       .maxLength$.asObservable()
@@ -235,6 +240,14 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     getPrivate(this).value$.next(value);
     this.value = value;
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 
   /**

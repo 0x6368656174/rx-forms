@@ -14,6 +14,7 @@ const privateData: WeakMap<RadioControl, RadioControlPrivate> = new WeakMap();
 
 function createPrivate(instance: RadioControl): RadioControlPrivate {
   const data = {
+    disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
@@ -60,6 +61,8 @@ export class RadioControl implements Control<string | null> {
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string | null>;
   readonly rxSet: Observable<boolean>;
+  readonly rxEnabled: Observable<boolean>;
+  readonly rxDisabled: Observable<boolean>;
 
   constructor() {
     const data = createPrivate(this);
@@ -78,6 +81,8 @@ export class RadioControl implements Control<string | null> {
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxSet = observables.rxSet;
+    this.rxEnabled = observables.rxEnabled;
+    this.rxDisabled = observables.rxDisabled;
   }
 
   markAsDirty(): void {
@@ -119,5 +124,13 @@ export class RadioControl implements Control<string | null> {
   setValue(value: string | null): void {
     getPrivate(this).value$.next(value);
     this.markAsDirty();
+  }
+
+  setEnabled(enabled: boolean): void {
+    getPrivate(this).disabled$.next(!enabled);
+  }
+
+  setDisabled(disabled: boolean): void {
+    getPrivate(this).disabled$.next(disabled);
   }
 }
