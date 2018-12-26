@@ -1,40 +1,36 @@
-import { BehaviorSubject, fromEvent, Observable } from 'rxjs';
+import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import {
+  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
-  prepareControl,
   removeValidator,
   setValidator,
+  subscribeToControlObservables,
+  unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
 
-function bindOnInput(this: RxTextarea): void {
-  const data = getPrivate(this);
-
-  fromEvent(this, 'input').subscribe(() => {
-    data.value$.next(this.value);
-  });
+function subscribeToValueChanges(control: RxTextarea): void {
+  fromEvent(control, 'input')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => {
+      control.setValue(control.value);
+    });
 }
 
-interface RxTextareaPrivate extends ControlBehaviourSubjects<string> {
-  readonly value$: BehaviorSubject<string>;
-  readonly validators$: BehaviorSubject<ValidatorsMap>;
-  readonly pristine$: BehaviorSubject<boolean>;
-  readonly untouched$: BehaviorSubject<boolean>;
-  readonly name$: BehaviorSubject<string>;
-  readonly readonly$: BehaviorSubject<boolean>;
-  readonly required$: BehaviorSubject<boolean>;
-}
+type RxTextareaPrivate = ControlBehaviourSubjects<string>;
 
 const privateData: WeakMap<RxTextarea, RxTextareaPrivate> = new WeakMap();
 
 function createPrivate(instance: RxTextarea): RxTextareaPrivate {
   const data = {
+    disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
     readonly$: new BehaviorSubject<boolean>(false),
@@ -58,6 +54,14 @@ function getPrivate(instance: RxTextarea): RxTextareaPrivate {
   return data;
 }
 
+function subscribeToObservables(control: RxTextarea): void {
+  subscribeToValueChanges(control);
+
+  fromEvent(control, 'blur')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => control.markAsTouched());
+}
+
 /**
  * @internal
  */
@@ -68,6 +72,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   /** @internal */
   static readonly observedAttributes = controlObservedAttributes;
 
+  readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
@@ -83,9 +88,12 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   constructor() {
     super();
 
+    checkControlRequiredAttributes(this, RxTextarea.tagName);
+
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
+    this.rxDisconnected = observables.rxDisconnected;
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -97,12 +105,6 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
-
-    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
-
-    prepareControl(this, RxTextarea.tagName, data);
-
-    bindOnInput.call(this);
   }
 
   markAsDirty(): void {
@@ -152,19 +154,22 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
       return;
     }
 
-    const data = getPrivate(this);
-
-    updateControlAttributesBehaviourSubjects(data, name, RxTextarea.tagName, newValue);
+    updateControlAttributesBehaviourSubjects(this, name, RxTextarea.tagName, newValue);
   }
 
   /** @internal */
   connectedCallback() {
     controlConnectedCallback(this, RxTextarea.tagName);
+
+    subscribeToControlObservables(this, this, RxTextarea.tagName);
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
     controlDisconnectedCallback(this, RxTextarea.tagName);
+
+    unsubscribeFromObservables(getPrivate(this));
   }
 }
 

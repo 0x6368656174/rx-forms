@@ -1,6 +1,6 @@
 import { isEqual } from 'lodash';
-import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, Observable, of, Subject } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 import { Validators as ValidatorsName } from '../validators';
 import { RxFormField } from './rx-form-field';
 import { updateAttribute } from './utils';
@@ -8,18 +8,29 @@ import { updateAttribute } from './utils';
 export type ValidatorsMap = Map<string, Observable<boolean>>;
 export type ValidatorsBehaviourSubject = BehaviorSubject<ValidatorsMap>;
 
-export function prepareControl<T>(
-  control: HTMLElement & ControlObservables<T>,
-  tagName: string,
-  withValidators: WithValidators,
-) {
-  if (!control.hasAttribute(ControlAttributes.Name)) {
+/**
+ * Проверяет, что все обязательные атрибуты для контрола установлены
+ *
+ * @param element Элемент контрола
+ * @param tagName Тэг
+ */
+export function checkControlRequiredAttributes(element: HTMLElement, tagName: string) {
+  if (!element.hasAttribute(ControlAttributes.Name)) {
     throw throwAttributeNameRequired(tagName);
   }
+}
 
-  bindControlObservablesToClass(control, tagName, control);
-  bindControlObservablesToAttributes(control, control);
-  bindControlObservablesToValidators(withValidators, control);
+/**
+ * Подписывается на изменения Observable'ов контрола
+ *
+ * @param element Элемент контрола
+ * @param control Контрол
+ * @param tagName Тэг
+ */
+export function subscribeToControlObservables<T>(element: HTMLElement, control: Control<T>, tagName: string) {
+  bindControlObservablesToClass(element, tagName, control);
+  bindControlObservablesToAttributes(element, control);
+  bindControlObservablesToValidators(control);
 }
 
 /**
@@ -40,6 +51,14 @@ interface WithValidators {
   validators$: ValidatorsBehaviourSubject;
 }
 
+interface WithDisconnected {
+  disconnected$: Subject<void>;
+}
+
+interface DisconnectedObservable {
+  rxDisconnected: Observable<void>;
+}
+
 /**
  * Удаляет валидатор
  *
@@ -54,7 +73,7 @@ export function removeValidator(control: WithValidators, validator: string): voi
   }
 }
 
-interface ControlClassObservables {
+interface ControlClassObservables extends DisconnectedObservable {
   rxValid: Observable<boolean>;
   rxDirty: Observable<boolean>;
   rxTouched: Observable<boolean>;
@@ -63,38 +82,38 @@ interface ControlClassObservables {
 /**
  * Биндит общие Observable'ы в имена классов элемента
  *
- * @param control Контрол
+ * @param element Контрол
  * @param tagName Тэг элемента
  * @param observables Observable'ы
  */
-function bindControlObservablesToClass(control: HTMLElement, tagName: string, observables: ControlClassObservables) {
-  observables.rxValid.subscribe(valid => {
+function bindControlObservablesToClass(element: HTMLElement, tagName: string, observables: ControlClassObservables) {
+  observables.rxValid.pipe(takeUntil(observables.rxDisconnected)).subscribe(valid => {
     if (valid) {
-      control.classList.add(`${tagName}--valid`);
-      control.classList.remove(`${tagName}--invalid`);
+      element.classList.add(`${tagName}--valid`);
+      element.classList.remove(`${tagName}--invalid`);
     } else {
-      control.classList.remove(`${tagName}--valid`);
-      control.classList.add(`${tagName}--invalid`);
+      element.classList.remove(`${tagName}--valid`);
+      element.classList.add(`${tagName}--invalid`);
     }
   });
 
-  observables.rxDirty.subscribe(dirty => {
+  observables.rxDirty.pipe(takeUntil(observables.rxDisconnected)).subscribe(dirty => {
     if (dirty) {
-      control.classList.add(`${tagName}--dirty`);
-      control.classList.remove(`${tagName}--pristine`);
+      element.classList.add(`${tagName}--dirty`);
+      element.classList.remove(`${tagName}--pristine`);
     } else {
-      control.classList.remove(`${tagName}--dirty`);
-      control.classList.add(`${tagName}--pristine`);
+      element.classList.remove(`${tagName}--dirty`);
+      element.classList.add(`${tagName}--pristine`);
     }
   });
 
-  observables.rxTouched.subscribe(touched => {
+  observables.rxTouched.pipe(takeUntil(observables.rxDisconnected)).subscribe(touched => {
     if (touched) {
-      control.classList.add(`${tagName}--touched`);
-      control.classList.remove(`${tagName}--untouched`);
+      element.classList.add(`${tagName}--touched`);
+      element.classList.remove(`${tagName}--untouched`);
     } else {
-      control.classList.remove(`${tagName}--touched`);
-      control.classList.add(`${tagName}--untouched`);
+      element.classList.remove(`${tagName}--touched`);
+      element.classList.add(`${tagName}--untouched`);
     }
   });
 }
@@ -105,7 +124,7 @@ enum ControlAttributes {
   Required = 'required',
 }
 
-interface ControlAttributeObservables {
+interface ControlAttributeObservables extends DisconnectedObservable {
   rxName: Observable<string>;
   rxReadonly: Observable<boolean>;
   rxRequired: Observable<boolean>;
@@ -114,20 +133,20 @@ interface ControlAttributeObservables {
 /**
  * Биндит общие Observable'ы в атрибуты элемента
  *
- * @param control Контрол
+ * @param element Контрол
  * @param observables Observable'ы
  */
-function bindControlObservablesToAttributes(control: HTMLElement, observables: ControlAttributeObservables): void {
-  observables.rxName.subscribe(name => {
-    updateAttribute(control, ControlAttributes.Name, name);
+function bindControlObservablesToAttributes(element: HTMLElement, observables: ControlAttributeObservables): void {
+  observables.rxName.pipe(takeUntil(observables.rxDisconnected)).subscribe(name => {
+    updateAttribute(element, ControlAttributes.Name, name);
   });
 
-  observables.rxReadonly.subscribe(readonly => {
-    updateAttribute(control, ControlAttributes.Readonly, readonly ? '' : null);
+  observables.rxReadonly.pipe(takeUntil(observables.rxDisconnected)).subscribe(readonly => {
+    updateAttribute(element, ControlAttributes.Readonly, readonly ? '' : null);
   });
 
-  observables.rxRequired.subscribe(required => {
-    updateAttribute(control, ControlAttributes.Required, required ? '' : null);
+  observables.rxRequired.pipe(takeUntil(observables.rxDisconnected)).subscribe(required => {
+    updateAttribute(element, ControlAttributes.Required, required ? '' : null);
   });
 }
 
@@ -143,17 +162,13 @@ interface WithValue<T> {
  * Биндит общие Observable'ы к валидаторам
  *
  * @param control Контрол
- * @param observables Observable'ы
  */
-function bindControlObservablesToValidators(
-  control: WithValidators,
-  observables: ControlValidatorObservables & WithValue<any>,
-): void {
-  observables.rxRequired.subscribe(required => {
+function bindControlObservablesToValidators<T>(control: Control<T>): void {
+  control.rxRequired.pipe(takeUntil(control.rxDisconnected)).subscribe(required => {
     if (!required) {
-      removeValidator(control, ValidatorsName.Required);
+      control.removeValidator(ValidatorsName.Required);
     } else {
-      const validator = observables.rxValue.pipe(
+      const validator = control.rxValue.pipe(
         map(value => {
           if (Array.isArray(value)) {
             return value.length !== 0;
@@ -163,7 +178,7 @@ function bindControlObservablesToValidators(
         }),
       );
 
-      setValidator(control, ValidatorsName.Required, validator);
+      control.setValidator(ValidatorsName.Required, validator);
     }
   });
 }
@@ -192,7 +207,7 @@ export function throwAttributeNameRequired(tagName: string): Error {
  * @param control Контрол
  * @param tagName Тэг элемента
  */
-export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, tagName: string) {
+export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, tagName: string): void {
   findParentFormField<T>(control, tagName).setControl(control);
 }
 
@@ -202,8 +217,17 @@ export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, t
  * @param control Контрол
  * @param tagName Тэг элемента
  */
-export function controlDisconnectedCallback(control: HTMLElement, tagName: string) {
+export function controlDisconnectedCallback(control: HTMLElement, tagName: string): void {
   findParentFormField(control, tagName).setControl(null);
+}
+
+/**
+ * Отписывается от Observable'ов контрола
+ *
+ * @param withDisconnected Объект с свойством disconnected$
+ */
+export function unsubscribeFromObservables(withDisconnected: WithDisconnected): void {
+  withDisconnected.disconnected$.next();
 }
 
 /**
@@ -235,8 +259,8 @@ interface ControlAttributesBehaviorSubjects {
  * @param tagName Тэг элемента
  * @param value Значение
  */
-export function updateControlAttributesBehaviourSubjects(
-  control: ControlAttributesBehaviorSubjects,
+export function updateControlAttributesBehaviourSubjects<T>(
+  control: Control<T>,
   attributeName: string,
   tagName: string,
   value: string | null,
@@ -247,22 +271,24 @@ export function updateControlAttributesBehaviourSubjects(
         throw throwAttributeNameRequired(tagName);
       }
 
-      control.name$.next(value);
+      control.setName(value);
       break;
     case ControlAttributes.Readonly:
-      control.readonly$.next(value !== null);
+      control.setReadonly(value !== null);
       break;
     case ControlAttributes.Required:
-      control.required$.next(value !== null);
+      control.setRequired(value !== null);
       break;
   }
 }
 
-export interface ControlBehaviourSubjects<T> extends ControlAttributesBehaviorSubjects {
+export interface ControlBehaviourSubjects<T>
+  extends ControlAttributesBehaviorSubjects,
+    WithValidators,
+    WithDisconnected {
   value$: BehaviorSubject<T>;
   pristine$: BehaviorSubject<boolean>;
   untouched$: BehaviorSubject<boolean>;
-  validators$: ValidatorsBehaviourSubject;
 }
 
 export interface ControlObservables<T>
@@ -270,6 +296,7 @@ export interface ControlObservables<T>
     ControlAttributeObservables,
     ControlValidatorObservables,
     WithValue<T> {
+  rxDisconnected: Observable<void>;
   rxPristine: Observable<boolean>;
   rxUntouched: Observable<boolean>;
   rxInvalid: Observable<boolean>;
@@ -330,13 +357,16 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
     shareReplay(1),
   );
 
-  const rxValue = behaviourSubjects.value$.pipe(
+  const rxValue = behaviourSubjects.value$.asObservable().pipe(
     distinctUntilChanged(isEqual),
     shareReplay(1),
   );
 
+  const rxDisconnected = behaviourSubjects.disconnected$.asObservable();
+
   return {
     rxDirty,
+    rxDisconnected,
     rxInvalid,
     rxName,
     rxPristine,
@@ -373,6 +403,8 @@ export interface Control<T> extends ControlObservables<T> {
   readonly rxUntouched: Observable<boolean>;
   /** Список ошибок валидации */
   readonly rxValidationErrors: Observable<string[]>;
+  /** Вызывается, когда элемент удален из DOM */
+  readonly rxDisconnected: Observable<void>;
 
   /**
    * Устанавливает имя

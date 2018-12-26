@@ -150,6 +150,27 @@
     </rx-form-field>
 </div>
 
+
+<div>
+    Радио
+    <rx-form-field>
+        <label>
+            <input is="rx-radio-input" type="radio" name="radio" value="value-1" required>
+
+            Радио 1
+        </label>
+
+        <label>
+            <input is="rx-radio-input" type="radio" name="radio" value="value-2" readonly>
+
+            Радио 2
+        </label>
+
+        <rx-success>Радио выбран</rx-success>
+        <rx-error validator="required">Выберите радио</rx-error>
+    </rx-form-field>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
@@ -157,13 +178,13 @@
 <script src="https://cdn.jsdelivr.net/npm/air-datepicker/dist/js/datepicker.min.js"></script>
 <script src="./dist/rx-forms.cjs.js.js"></script>
 <script>
-    document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone: ${v}`));
+    document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone value: ${v}`));
     document.querySelector('input[name="phone"]').rxValid.subscribe(v => console.log(`Phone valid: ${v}`));
 
     document.querySelector('textarea[name="text"]').rxValue.subscribe(v => console.log(`Text value: ${v}`));
     document.querySelector('textarea[name="text"]').rxValid.subscribe(v => console.log(`Text valid: ${v}`));
 
-    document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date: ${v}`));
+    document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date value: ${v}`));
     document.querySelector('input[name="date"]').rxValid.subscribe(v => console.log(`Date valid: ${v}`));
     const dateInput = document.querySelector('input[name="date"]');
     // flatpickr(dateInput, {
@@ -183,7 +204,7 @@
       }
     });
 
-    document.querySelector('input[name="checkbox"]').rxValue.subscribe(v => console.log(`Checkbox: ${v}`));
+    document.querySelector('input[name="checkbox"]').rxValue.subscribe(v => console.log(`Checkbox value: ${v}`));
     document.querySelector('input[name="checkbox"]').rxValid.subscribe(v => console.log(`Checkbox valid: ${v}`));
 
     document.querySelector('select[name="select"]').rxValue.subscribe(v => console.log(`Select value: ${v}`));
@@ -191,6 +212,9 @@
 
     document.querySelector('select[name="select-multiple[]"]').rxValue.subscribe(v => console.log(`Multiple select value: ${v}`));
     document.querySelector('select[name="select-multiple[]"]').rxValid.subscribe(v => console.log(`Multiple select valid: ${v}`));
+
+    document.querySelector('input[name="radio"]').rxValue.subscribe(v => console.log(`Radio value: ${v}`));
+    document.querySelector('input[name="radio"]').rxValid.subscribe(v => console.log(`Radio valid: ${v}`));
 </script>
 </body>
 </html>

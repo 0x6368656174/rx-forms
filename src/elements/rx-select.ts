@@ -1,14 +1,17 @@
-import { BehaviorSubject, fromEvent, Observable } from 'rxjs';
+import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import {
+  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
-  prepareControl,
   removeValidator,
   setValidator,
+  subscribeToControlObservables,
+  unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
@@ -18,12 +21,12 @@ enum RxSelectAttributes {
   Multiple = 'multiple',
 }
 
-function bindOnInput(this: RxSelect): void {
-  const data = getPrivate(this);
-
-  fromEvent(this, 'change').subscribe(() => {
-    data.value$.next(this.value);
-  });
+function subscribeToValueChanges(control: RxSelect): void {
+  fromEvent(control, 'change')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => {
+      control.setValue(control.value);
+    });
 }
 
 function throwAttributeMultipleNotSupported(): Error {
@@ -34,20 +37,13 @@ function throwAttributeMultipleNotSupported(): Error {
   );
 }
 
-interface RxSelectPrivate extends ControlBehaviourSubjects<string> {
-  readonly value$: BehaviorSubject<string>;
-  readonly validators$: BehaviorSubject<ValidatorsMap>;
-  readonly pristine$: BehaviorSubject<boolean>;
-  readonly untouched$: BehaviorSubject<boolean>;
-  readonly name$: BehaviorSubject<string>;
-  readonly readonly$: BehaviorSubject<boolean>;
-  readonly required$: BehaviorSubject<boolean>;
-}
+type RxSelectPrivate = ControlBehaviourSubjects<string>;
 
 const privateData: WeakMap<RxSelect, RxSelectPrivate> = new WeakMap();
 
 function createPrivate(instance: RxSelect): RxSelectPrivate {
   const data = {
+    disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
     readonly$: new BehaviorSubject<boolean>(false),
@@ -71,8 +67,16 @@ function getPrivate(instance: RxSelect): RxSelectPrivate {
   return data;
 }
 
+function subscribeToObservables(control: RxSelect): void {
+  subscribeToValueChanges(control);
+
+  fromEvent(control, 'blur')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => control.markAsTouched());
+}
+
 /**
- * @internal
+ * Селект
  */
 export class RxSelect extends HTMLSelectElement implements Control<string> {
   /** Тэг */
@@ -81,6 +85,7 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   /** @internal */
   static readonly observedAttributes = [...controlObservedAttributes, RxSelectAttributes.Multiple];
 
+  readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
@@ -96,6 +101,8 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   constructor() {
     super();
 
+    checkControlRequiredAttributes(this, RxSelect.tagName);
+
     if (this.hasAttribute(RxSelectAttributes.Multiple)) {
       throw throwAttributeMultipleNotSupported();
     }
@@ -103,6 +110,7 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
+    this.rxDisconnected = observables.rxDisconnected;
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -114,12 +122,6 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
-
-    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
-
-    prepareControl(this, RxSelect.tagName, data);
-
-    bindOnInput.call(this);
   }
 
   markAsDirty(): void {
@@ -169,8 +171,6 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
       return;
     }
 
-    const data = getPrivate(this);
-
     switch (name) {
       case RxSelectAttributes.Multiple:
         if (newValue !== null) {
@@ -179,7 +179,7 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
 
         break;
       default:
-        updateControlAttributesBehaviourSubjects(data, name, RxSelectMultiple.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxSelectMultiple.tagName, newValue);
         break;
     }
   }
@@ -187,11 +187,16 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   /** @internal */
   connectedCallback() {
     controlConnectedCallback(this, RxSelect.tagName);
+
+    subscribeToControlObservables(this, this, RxSelect.tagName);
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
     controlDisconnectedCallback(this, RxSelect.tagName);
+
+    unsubscribeFromObservables(getPrivate(this));
   }
 }
 

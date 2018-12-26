@@ -1,14 +1,17 @@
-import { BehaviorSubject, fromEvent, Observable } from 'rxjs';
+import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import {
+  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
-  prepareControl,
   removeValidator,
   setValidator,
+  subscribeToControlObservables,
+  unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
@@ -21,17 +24,17 @@ function throwAttributeMultipleRequired(): Error {
   return new Error(`Attribute "${RxSelectMultipleAttributes.Multiple}" for <${RxSelectMultiple.tagName}> is required.`);
 }
 
-function bindOnInput(this: RxSelectMultiple): void {
-  const data = getPrivate(this);
-
-  fromEvent(this, 'change').subscribe(() => {
-    data.value$.next(getSelectedOptions.call(this));
-  });
+function subscribeToValueChanges(control: RxSelectMultiple): void {
+  fromEvent(control, 'change')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => {
+      control.setValue(getSelectedOptions(control));
+    });
 }
 
-function getSelectedOptions(this: RxSelectMultiple): string[] {
+function getSelectedOptions(control: RxSelectMultiple): string[] {
   const value: string[] = [];
-  const options = this.options;
+  const options = control.options;
 
   // tslint:disable-next-line
   for (let i = 0; i < options.length; ++i) {
@@ -44,8 +47,8 @@ function getSelectedOptions(this: RxSelectMultiple): string[] {
   return value;
 }
 
-function selectOptions(this: RxSelectMultiple, selected: string[]) {
-  const options = this.options;
+function selectOptions(control: RxSelectMultiple, selected: string[]) {
+  const options = control.options;
 
   // tslint:disable-next-line
   for (let i = 0; i < options.length; ++i) {
@@ -55,27 +58,20 @@ function selectOptions(this: RxSelectMultiple, selected: string[]) {
   }
 }
 
-interface RxSelectMultiplePrivate extends ControlBehaviourSubjects<string[]> {
-  readonly value$: BehaviorSubject<string[]>;
-  readonly validators$: BehaviorSubject<ValidatorsMap>;
-  readonly pristine$: BehaviorSubject<boolean>;
-  readonly untouched$: BehaviorSubject<boolean>;
-  readonly name$: BehaviorSubject<string>;
-  readonly readonly$: BehaviorSubject<boolean>;
-  readonly required$: BehaviorSubject<boolean>;
-}
+type RxSelectMultiplePrivate = ControlBehaviourSubjects<string[]>;
 
 const privateData: WeakMap<RxSelectMultiple, RxSelectMultiplePrivate> = new WeakMap();
 
 function createPrivate(instance: RxSelectMultiple): RxSelectMultiplePrivate {
   const data = {
+    disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
     readonly$: new BehaviorSubject<boolean>(false),
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<string[]>(getSelectedOptions.call(instance)),
+    value$: new BehaviorSubject<string[]>(getSelectedOptions(instance)),
   };
 
   privateData.set(instance, data);
@@ -92,8 +88,16 @@ function getPrivate(instance: RxSelectMultiple): RxSelectMultiplePrivate {
   return data;
 }
 
+function subscribeToObservables(control: RxSelectMultiple): void {
+  subscribeToValueChanges(control);
+
+  fromEvent(control, 'blur')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => control.markAsTouched());
+}
+
 /**
- * @internal
+ * Множественный селект
  */
 export class RxSelectMultiple extends HTMLSelectElement implements Control<string[]> {
   /** Тэг */
@@ -102,6 +106,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
   /** @internal */
   static readonly observedAttributes = [...controlObservedAttributes, RxSelectMultipleAttributes.Multiple];
 
+  readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
@@ -117,6 +122,8 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
   constructor() {
     super();
 
+    checkControlRequiredAttributes(this, RxSelectMultiple.tagName);
+
     if (!this.hasAttribute(RxSelectMultipleAttributes.Multiple)) {
       throw throwAttributeMultipleRequired();
     }
@@ -124,6 +131,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
+    this.rxDisconnected = observables.rxDisconnected;
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -135,12 +143,6 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
-
-    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
-
-    prepareControl(this, RxSelectMultiple.tagName, data);
-
-    bindOnInput.call(this);
   }
 
   markAsDirty(): void {
@@ -181,7 +183,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
 
   setValue(value: string[]): void {
     getPrivate(this).value$.next(value);
-    selectOptions.call(this, value);
+    selectOptions(this, value);
     this.markAsDirty();
   }
 
@@ -189,8 +191,6 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
     if (newValue === oldValue) {
       return;
     }
-
-    const data = getPrivate(this);
 
     switch (name) {
       case RxSelectMultipleAttributes.Multiple:
@@ -200,7 +200,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
 
         break;
       default:
-        updateControlAttributesBehaviourSubjects(data, name, RxSelectMultiple.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxSelectMultiple.tagName, newValue);
         break;
     }
   }
@@ -208,11 +208,16 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
   /** @internal */
   connectedCallback() {
     controlConnectedCallback(this, RxSelectMultiple.tagName);
+
+    subscribeToControlObservables(this, this, RxSelectMultiple.tagName);
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
     controlDisconnectedCallback(this, RxSelectMultiple.tagName);
+
+    unsubscribeFromObservables(getPrivate(this));
   }
 }
 

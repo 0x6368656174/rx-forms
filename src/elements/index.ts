@@ -5,5 +5,6 @@ export * from './rx-checkbox-input';
 export * from './rx-textarea';
 export * from './rx-select';
 export * from './rx-select-multiple';
+export * from './rx-radio-input';
 export * from './rx-error';
 export * from './rx-success';

@@ -1,35 +1,18 @@
-import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import {
-  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
-  controlConnectedCallback,
-  controlDisconnectedCallback,
-  controlObservedAttributes,
   createControlObservables,
   removeValidator,
   setValidator,
-  subscribeToControlObservables,
-  unsubscribeFromObservables,
-  updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
-import { updateAttribute } from './utils';
 
-function subscribeToValueChanges(control: RxCheckboxInput): void {
-  fromEvent(control, 'change')
-    .pipe(takeUntil(control.rxDisconnected))
-    .subscribe(() => {
-      control.setValue(control.checked);
-    });
-}
+type RadioControlPrivate = ControlBehaviourSubjects<string | null>;
 
-type RxCheckboxInputPrivate = ControlBehaviourSubjects<boolean>;
+const privateData: WeakMap<RadioControl, RadioControlPrivate> = new WeakMap();
 
-const privateData: WeakMap<RxCheckboxInput, RxCheckboxInputPrivate> = new WeakMap();
-
-function createPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
+function createPrivate(instance: RadioControl): RadioControlPrivate {
   const data = {
     disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
@@ -38,7 +21,7 @@ function createPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<boolean>(instance.checked),
+    value$: new BehaviorSubject<string | null>(null),
   };
 
   privateData.set(instance, data);
@@ -46,7 +29,7 @@ function createPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
+function getPrivate(instance: RadioControl): RadioControlPrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -55,26 +38,17 @@ function getPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
   return data;
 }
 
-function subscribeToObservables(control: RxCheckboxInput): void {
-  subscribeToValueChanges(control);
-
-  fromEvent(control, 'blur')
-    .pipe(takeUntil(control.rxDisconnected))
-    .subscribe(() => control.markAsTouched());
+export function emitDisconnected(control: RadioControl): void {
+  const data = getPrivate(control);
+  data.disconnected$.next();
 }
 
 /**
- * Чекбокс
+ * @internal
  */
-export class RxCheckboxInput extends HTMLInputElement implements Control<boolean> {
-  /** Тэг */
-  static readonly tagName: string = 'rx-checkbox-input';
-
-  /** @internal */
-  static readonly observedAttributes = controlObservedAttributes;
-
-  readonly rxDirty: Observable<boolean>;
+export class RadioControl implements Control<string | null> {
   readonly rxDisconnected: Observable<void>;
+  readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
   readonly rxPristine: Observable<boolean>;
@@ -84,13 +58,9 @@ export class RxCheckboxInput extends HTMLInputElement implements Control<boolean
   readonly rxUntouched: Observable<boolean>;
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
-  readonly rxValue: Observable<boolean>;
+  readonly rxValue: Observable<string | null>;
 
   constructor() {
-    super();
-
-    checkControlRequiredAttributes(this, RxCheckboxInput.tagName);
-
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
@@ -144,34 +114,8 @@ export class RxCheckboxInput extends HTMLInputElement implements Control<boolean
     setValidator(getPrivate(this), name, validator);
   }
 
-  setValue(checked: boolean): void {
-    getPrivate(this).value$.next(checked);
-    updateAttribute(this, 'checked', checked ? '' : null);
+  setValue(value: string | null): void {
+    getPrivate(this).value$.next(value);
     this.markAsDirty();
   }
-
-  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
-    if (newValue === oldValue) {
-      return;
-    }
-
-    updateControlAttributesBehaviourSubjects(this, name, RxCheckboxInput.tagName, newValue);
-  }
-
-  /** @internal */
-  connectedCallback() {
-    controlConnectedCallback(this, RxCheckboxInput.tagName);
-
-    subscribeToControlObservables(this, this, RxCheckboxInput.tagName);
-    subscribeToObservables(this);
-  }
-
-  /** @internal */
-  disconnectedCallback() {
-    controlDisconnectedCallback(this, RxCheckboxInput.tagName);
-
-    unsubscribeFromObservables(getPrivate(this));
-  }
 }
-
-customElements.define(RxCheckboxInput.tagName, RxCheckboxInput, { extends: 'input' });

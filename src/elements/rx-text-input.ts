@@ -1,19 +1,21 @@
 import { parse } from 'json5';
 import { endsWith, isEqual, isString, startsWith } from 'lodash';
-import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { pattern, Validators } from '../validators';
 import {
+  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
-  prepareControl,
   removeValidator,
   setValidator,
+  subscribeToControlObservables,
+  unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
@@ -24,56 +26,52 @@ enum RxTextInputAttributes {
   Pattern = 'pattern',
 }
 
-function bindOnInput(this: RxTextInput): void {
-  const data = getPrivate(this);
-
-  const textInputMaskElement$ = data.mask$.asObservable().pipe(
+function subscribeToValueChanges(control: RxTextInput): void {
+  const textInputMaskElement$ = control.rxMask.pipe(
     map(mask => {
       if (!mask) {
         return null;
       }
 
       return createTextMaskInputElement({
-        inputElement: this,
+        inputElement: control,
         mask,
       });
     }),
   );
 
-  const onInput$ = fromEvent(this, 'input');
-  combineLatest(onInput$, textInputMaskElement$).subscribe(([_, textInputMaskElement]) => {
-    if (textInputMaskElement === null) {
-      data.value$.next(this.value);
-      return;
-    }
+  const onInput$ = fromEvent(control, 'input');
+  combineLatest(onInput$, textInputMaskElement$)
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(([_, textInputMaskElement]) => {
+      if (textInputMaskElement === null) {
+        control.setValue(control.value);
+        return;
+      }
 
-    textInputMaskElement.update(this.value);
-    data.value$.next(this.value);
-  });
+      textInputMaskElement.update(control.value);
+      control.setValue(control.value);
+    });
 }
 
-function bindValidators(this: RxTextInput): void {
-  const data = getPrivate(this);
-
-  data.pattern$.asObservable().subscribe(regExp => {
+function setValidators(control: RxTextInput): void {
+  control.rxPattern.pipe(takeUntil(control.rxDisconnected)).subscribe(regExp => {
     if (!regExp) {
-      removeValidator(data, Validators.Pattern);
+      control.removeValidator(Validators.Pattern);
     } else {
-      setValidator(data, Validators.Pattern, pattern(data.value$.asObservable(), regExp));
+      control.setValidator(Validators.Pattern, pattern(control.rxValue, regExp));
     }
   });
 }
 
-function bindObservablesToAttributes(this: RxTextInput): void {
-  const data = getPrivate(this);
-
-  data.mask$.asObservable().subscribe(mask => {
+function subscribeToAttributeObservables(control: RxTextInput): void {
+  control.rxMask.pipe(takeUntil(control.rxDisconnected)).subscribe(mask => {
     const stringMask = mask ? mask.map(element => `'${element.toString()}'`).join(', ') : null;
-    updateAttribute(this, RxTextInputAttributes.Mask, stringMask ? `[${stringMask}]` : null);
+    updateAttribute(control, RxTextInputAttributes.Mask, stringMask ? `[${stringMask}]` : null);
   });
 
-  data.pattern$.asObservable().subscribe(regExp => {
-    updateAttribute(this, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
+  control.rxPattern.pipe(takeUntil(control.rxDisconnected)).subscribe(regExp => {
+    updateAttribute(control, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
   });
 }
 
@@ -118,18 +116,13 @@ interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
   readonly value$: BehaviorSubject<string>;
   readonly mask$: BehaviorSubject<Array<string | RegExp> | null>;
   readonly pattern$: BehaviorSubject<RegExp | null>;
-  readonly validators$: BehaviorSubject<ValidatorsMap>;
-  readonly pristine$: BehaviorSubject<boolean>;
-  readonly untouched$: BehaviorSubject<boolean>;
-  readonly name$: BehaviorSubject<string>;
-  readonly readonly$: BehaviorSubject<boolean>;
-  readonly required$: BehaviorSubject<boolean>;
 }
 
 const privateData: WeakMap<RxTextInput, RxTextInputPrivate> = new WeakMap();
 
 function createPrivate(instance: RxTextInput): RxTextInputPrivate {
   const data = {
+    disconnected$: new Subject<void>(),
     mask$: new BehaviorSubject<Array<string | RegExp> | null>(null),
     name$: new BehaviorSubject<string>(''),
     pattern$: new BehaviorSubject<RegExp | null>(null),
@@ -155,6 +148,15 @@ function getPrivate(instance: RxTextInput): RxTextInputPrivate {
   return data;
 }
 
+function subscribeToObservables(control: RxTextInput): void {
+  subscribeToValueChanges(control);
+  subscribeToAttributeObservables(control);
+
+  fromEvent(control, 'blur')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => control.markAsTouched());
+}
+
 /**
  * Поле ввода текста
  */
@@ -178,6 +180,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
    */
   readonly rxPattern: Observable<RegExp | null>;
 
+  readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
@@ -193,9 +196,12 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   constructor() {
     super();
 
+    checkControlRequiredAttributes(this, RxTextInput.tagName);
+
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
+    this.rxDisconnected = observables.rxDisconnected;
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -222,13 +228,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
         shareReplay(1),
       );
 
-    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
-
-    prepareControl(this, RxTextInput.tagName, data);
-
-    bindOnInput.call(this);
-    bindValidators.call(this);
-    bindObservablesToAttributes.call(this);
+    setValidators(this);
   }
 
   markAsDirty(): void {
@@ -296,17 +296,15 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
       return;
     }
 
-    const data = getPrivate(this);
-
     switch (name) {
       case RxTextInputAttributes.Mask:
-        data.mask$.next(newValue !== null ? maskStringToArray(newValue) : null);
+        this.setMask(newValue !== null ? maskStringToArray(newValue) : null);
         break;
       case RxTextInputAttributes.Pattern:
-        data.pattern$.next(newValue !== null ? stringToRegExp(newValue) : null);
+        this.setPattern(newValue !== null ? stringToRegExp(newValue) : null);
         break;
       default:
-        updateControlAttributesBehaviourSubjects(data, name, RxTextInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxTextInput.tagName, newValue);
         break;
     }
   }
@@ -314,11 +312,16 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   /** @internal */
   connectedCallback() {
     controlConnectedCallback(this, RxTextInput.tagName);
+
+    subscribeToControlObservables(this, this, RxTextInput.tagName);
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
     controlDisconnectedCallback(this, RxTextInput.tagName);
+
+    unsubscribeFromObservables(getPrivate(this));
   }
 }
 

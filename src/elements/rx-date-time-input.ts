@@ -1,19 +1,21 @@
 import { flatMap, isEqual } from 'lodash';
 import { DateTime } from 'luxon';
-import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { Validators } from '../validators';
 import {
+  checkControlRequiredAttributes,
   Control,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
   controlObservedAttributes,
   createControlObservables,
-  prepareControl,
   removeValidator,
   setValidator,
+  subscribeToControlObservables,
+  unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
@@ -64,10 +66,8 @@ function parseFormat(fmt: string) {
   return splits;
 }
 
-function bindOnInput(this: RxDateTimeInput): void {
-  const data = getPrivate(this);
-
-  const textInputMaskElement$ = data.format$.asObservable().pipe(
+function subscribeToValueChanges(control: RxDateTimeInput): void {
+  const textInputMaskElement$ = control.rxFormat.pipe(
     map(format => {
       if (!format) {
         return null;
@@ -168,65 +168,55 @@ function bindOnInput(this: RxDateTimeInput): void {
       }
 
       return createTextMaskInputElement({
-        inputElement: this,
+        inputElement: control,
         mask: mask as Array<string | RegExp>,
       });
     }),
   );
 
-  const onInput$ = fromEvent(this, 'input');
-  combineLatest(onInput$, textInputMaskElement$, data.format$, data.locale$).subscribe(
-    ([_, textInputMaskElement, format, locale]) => {
+  const onInput$ = fromEvent(control, 'input');
+  combineLatest(onInput$, textInputMaskElement$, control.rxFormat, control.rxLocale)
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(([_, textInputMaskElement, format, locale]) => {
       let value: string;
 
       if (textInputMaskElement === null) {
-        value = this.value;
+        value = control.value;
       } else {
-        textInputMaskElement.update(this.value);
-        value = this.value;
+        textInputMaskElement.update(control.value);
+        value = control.value;
       }
 
       if (value === '') {
-        data.value$.next(null);
+        control.setValue(null);
       } else {
         const dateTime = DateTime.fromFormat(value, format, { locale: locale || undefined });
-        data.value$.next(dateTime);
+        control.setValue(dateTime);
       }
-    },
-  );
+    });
 }
 
-function bindValidators(this: RxDateTimeInput): void {
-  const data = getPrivate(this);
+function setValidators(control: RxDateTimeInput): void {
+  const data = getPrivate(control);
 
-  const validator = this.rxValue.pipe(map(value => (value !== null ? value.isValid : true)));
+  const validator = control.rxValue.pipe(map(value => (value !== null ? value.isValid : true)));
 
   setValidator(data, Validators.Format, validator);
 }
 
-function bindObservablesToAttributes(this: RxDateTimeInput): void {
-  const data = getPrivate(this);
-
-  data.format$.asObservable().subscribe(format => {
-    updateAttribute(this, RxDateTimeInputAttributes.Format, format);
+function subscribeToAttributeObservables(control: RxDateTimeInput): void {
+  control.rxFormat.pipe(takeUntil(control.rxDisconnected)).subscribe(format => {
+    updateAttribute(control, RxDateTimeInputAttributes.Format, format);
   });
 
-  data.locale$.asObservable().subscribe(locale => {
-    updateAttribute(this, RxDateTimeInputAttributes.Locale, locale);
+  control.rxLocale.pipe(takeUntil(control.rxDisconnected)).subscribe(locale => {
+    updateAttribute(control, RxDateTimeInputAttributes.Locale, locale);
   });
 }
 
 interface RxTextInputPrivate extends ControlBehaviourSubjects<DateTime | null> {
   readonly format$: BehaviorSubject<string>;
   readonly locale$: BehaviorSubject<string | null>;
-
-  readonly value$: BehaviorSubject<DateTime | null>;
-  readonly validators$: BehaviorSubject<ValidatorsMap>;
-  readonly pristine$: BehaviorSubject<boolean>;
-  readonly untouched$: BehaviorSubject<boolean>;
-  readonly name$: BehaviorSubject<string>;
-  readonly readonly$: BehaviorSubject<boolean>;
-  readonly required$: BehaviorSubject<boolean>;
 }
 
 const privateData: WeakMap<RxDateTimeInput, RxTextInputPrivate> = new WeakMap();
@@ -241,6 +231,7 @@ function createPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   const value = DateTime.fromFormat(instance.value, format, { locale: locale || undefined });
 
   const data = {
+    disconnected$: new Subject<void>(),
     format$: new BehaviorSubject<string>(format),
     locale$: new BehaviorSubject<string | null>(locale),
     name$: new BehaviorSubject<string>(''),
@@ -266,6 +257,15 @@ function getPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   return data;
 }
 
+function subscribeToObservables(control: RxDateTimeInput): void {
+  subscribeToValueChanges(control);
+  subscribeToAttributeObservables(control);
+
+  fromEvent(control, 'blur')
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(() => control.markAsTouched());
+}
+
 /**
  * Поле ввода даты
  */
@@ -289,6 +289,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
    */
   readonly rxLocale: Observable<string | null>;
 
+  readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
   readonly rxInvalid: Observable<boolean>;
   readonly rxName: Observable<string>;
@@ -304,9 +305,12 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
   constructor() {
     super();
 
+    checkControlRequiredAttributes(this, RxDateTimeInput.tagName);
+
     const data = createPrivate(this);
 
     const observables = createControlObservables(data);
+    this.rxDisconnected = observables.rxDisconnected;
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
@@ -333,13 +337,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
         shareReplay(1),
       );
 
-    fromEvent(this, 'blur').subscribe(() => this.markAsTouched());
-
-    prepareControl(this, RxDateTimeInput.tagName, data);
-
-    bindOnInput.call(this);
-    bindValidators.call(this);
-    bindObservablesToAttributes.call(this);
+    setValidators(this);
   }
 
   markAsDirty(): void {
@@ -420,20 +418,18 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
       return;
     }
 
-    const data = getPrivate(this);
-
     switch (name) {
       case RxDateTimeInputAttributes.Format:
         if (!newValue) {
           throw throwAttributeFormatRequired();
         }
-        data.format$.next(newValue);
+        this.setFormat(newValue);
         break;
       case RxDateTimeInputAttributes.Locale:
-        data.locale$.next(newValue);
+        this.setLocale(newValue);
         break;
       default:
-        updateControlAttributesBehaviourSubjects(data, name, RxDateTimeInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxDateTimeInput.tagName, newValue);
         break;
     }
   }
@@ -441,11 +437,16 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
   /** @internal */
   connectedCallback() {
     controlConnectedCallback(this, RxDateTimeInput.tagName);
+
+    subscribeToControlObservables(this, this, RxDateTimeInput.tagName);
+    subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
     controlDisconnectedCallback(this, RxDateTimeInput.tagName);
+
+    unsubscribeFromObservables(getPrivate(this));
   }
 }
 

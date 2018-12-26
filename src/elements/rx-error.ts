@@ -100,15 +100,13 @@ export class RxError extends HTMLElement implements CustomElement {
       return;
     }
 
-    const data = getPrivate(this);
-
     switch (name) {
       case RxErrorAttributes.Validator:
         if (!newValue) {
           throw throwAttributeValidatorRequired();
         }
 
-        data.validator$.next(newValue);
+        this.setValidator(newValue);
         break;
     }
   }
