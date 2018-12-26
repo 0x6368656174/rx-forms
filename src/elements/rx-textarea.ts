@@ -1,5 +1,9 @@
+import { isEqual } from 'lodash';
 import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
+import { Validators } from '../validators';
+import { maxLength } from '../validators/validator-max-length';
+import { minLength } from '../validators/validator-min-length';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -15,6 +19,20 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { updateAttribute } from './utils';
+
+enum RxTextareaAttributes {
+  MaxLength = 'maxlength',
+  MinLength = 'minlength',
+}
+
+function throwInvalidMaxLength() {
+  throw new Error(`Attribute "${RxTextareaAttributes.MaxLength}" of <${RxTextarea.tagName}> must be number.`);
+}
+
+function throwInvalidMinLength() {
+  throw new Error(`Attribute "${RxTextareaAttributes.MinLength}" of <${RxTextarea.tagName}> must be number.`);
+}
 
 function subscribeToValueChanges(control: RxTextarea): void {
   fromEvent(control, 'input')
@@ -24,13 +42,18 @@ function subscribeToValueChanges(control: RxTextarea): void {
     });
 }
 
-type RxTextareaPrivate = ControlBehaviourSubjects<string>;
+interface RxTextareaPrivate extends ControlBehaviourSubjects<string> {
+  readonly maxLength$: BehaviorSubject<number | null>;
+  readonly minLength$: BehaviorSubject<number | null>;
+}
 
 const privateData: WeakMap<RxTextarea, RxTextareaPrivate> = new WeakMap();
 
 function createPrivate(instance: RxTextarea): RxTextareaPrivate {
   const data = {
     disconnected$: new Subject<void>(),
+    maxLength$: new BehaviorSubject<number | null>(null),
+    minLength$: new BehaviorSubject<number | null>(null),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
     readonly$: new BehaviorSubject<boolean>(false),
@@ -54,8 +77,37 @@ function getPrivate(instance: RxTextarea): RxTextareaPrivate {
   return data;
 }
 
+function setValidators(control: RxTextarea): void {
+  control.rxMaxLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    if (!length) {
+      control.removeValidator(Validators.MaxLength);
+    } else {
+      control.setValidator(Validators.MaxLength, maxLength(control.rxValue, length));
+    }
+  });
+
+  control.rxMinLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    if (!length) {
+      control.removeValidator(Validators.MinLength);
+    } else {
+      control.setValidator(Validators.MinLength, minLength(control.rxValue, length));
+    }
+  });
+}
+
+function subscribeToAttributeObservables(control: RxTextarea): void {
+  control.rxMaxLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    updateAttribute(control, RxTextareaAttributes.MaxLength, length ? length.toString() : null);
+  });
+
+  control.rxMinLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    updateAttribute(control, RxTextareaAttributes.MinLength, length ? length.toString() : null);
+  });
+}
+
 function subscribeToObservables(control: RxTextarea): void {
   subscribeToValueChanges(control);
+  subscribeToAttributeObservables(control);
 
   fromEvent(control, 'blur')
     .pipe(takeUntil(control.rxDisconnected))
@@ -70,7 +122,20 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   static readonly tagName: string = 'rx-textarea';
 
   /** @internal */
-  static readonly observedAttributes = controlObservedAttributes;
+  static readonly observedAttributes = [
+    ...controlObservedAttributes,
+    RxTextareaAttributes.MaxLength,
+    RxTextareaAttributes.MinLength,
+  ];
+
+  /**
+   * Максимальная длина
+   */
+  readonly rxMaxLength: Observable<number | null>;
+  /**
+   * Минимальная длина
+   */
+  readonly rxMinLength: Observable<number | null>;
 
   readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
@@ -105,6 +170,22 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+
+    this.rxMaxLength = getPrivate(this)
+      .maxLength$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    this.rxMinLength = getPrivate(this)
+      .minLength$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    setValidators(this);
   }
 
   markAsDirty(): void {
@@ -149,12 +230,52 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.markAsDirty();
   }
 
+  /**
+   * Устанавливает максимальную длину
+   *
+   * @param length Максимальная длина
+   */
+  setMaxLength(length: number | null) {
+    getPrivate(this).maxLength$.next(length);
+  }
+
+  /**
+   * Устанавливает минимальную длину
+   *
+   * @param length Минимальная длина
+   */
+  setMinLength(length: number | null) {
+    getPrivate(this).minLength$.next(length);
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
     }
 
-    updateControlAttributesBehaviourSubjects(this, name, RxTextarea.tagName, newValue);
+    switch (name) {
+      case RxTextareaAttributes.MaxLength: {
+        const length = newValue ? parseInt(newValue, 10) : null;
+        if (length !== null && Number.isNaN(length)) {
+          throw throwInvalidMaxLength();
+        }
+
+        this.setMaxLength(length);
+        break;
+      }
+      case RxTextareaAttributes.MinLength: {
+        const length = newValue ? parseInt(newValue, 10) : null;
+        if (length !== null && Number.isNaN(length)) {
+          throw throwInvalidMinLength();
+        }
+
+        this.setMinLength(length);
+        break;
+      }
+      default:
+        updateControlAttributesBehaviourSubjects(this, name, RxTextarea.tagName, newValue);
+        break;
+    }
   }
 
   /** @internal */

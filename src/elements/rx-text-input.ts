@@ -4,6 +4,8 @@ import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from '
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { pattern, Validators } from '../validators';
+import { maxLength } from '../validators/validator-max-length';
+import { minLength } from '../validators/validator-min-length';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -24,6 +26,16 @@ import { updateAttribute } from './utils';
 enum RxTextInputAttributes {
   Mask = 'mask',
   Pattern = 'pattern',
+  MaxLength = 'maxlength',
+  MinLength = 'minlength',
+}
+
+function throwInvalidMaxLength() {
+  throw new Error(`Attribute "${RxTextInputAttributes.MaxLength}" of <${RxTextInput.tagName}> must be number.`);
+}
+
+function throwInvalidMinLength() {
+  throw new Error(`Attribute "${RxTextInputAttributes.MinLength}" of <${RxTextInput.tagName}> must be number.`);
 }
 
 function subscribeToValueChanges(control: RxTextInput): void {
@@ -62,6 +74,22 @@ function setValidators(control: RxTextInput): void {
       control.setValidator(Validators.Pattern, pattern(control.rxValue, regExp));
     }
   });
+
+  control.rxMaxLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    if (!length) {
+      control.removeValidator(Validators.MaxLength);
+    } else {
+      control.setValidator(Validators.MaxLength, maxLength(control.rxValue, length));
+    }
+  });
+
+  control.rxMinLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    if (!length) {
+      control.removeValidator(Validators.MinLength);
+    } else {
+      control.setValidator(Validators.MinLength, minLength(control.rxValue, length));
+    }
+  });
 }
 
 function subscribeToAttributeObservables(control: RxTextInput): void {
@@ -72,6 +100,14 @@ function subscribeToAttributeObservables(control: RxTextInput): void {
 
   control.rxPattern.pipe(takeUntil(control.rxDisconnected)).subscribe(regExp => {
     updateAttribute(control, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
+  });
+
+  control.rxMaxLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    updateAttribute(control, RxTextInputAttributes.MaxLength, length ? length.toString() : null);
+  });
+
+  control.rxMinLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
+    updateAttribute(control, RxTextInputAttributes.MinLength, length ? length.toString() : null);
   });
 }
 
@@ -116,6 +152,8 @@ interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
   readonly value$: BehaviorSubject<string>;
   readonly mask$: BehaviorSubject<Array<string | RegExp> | null>;
   readonly pattern$: BehaviorSubject<RegExp | null>;
+  readonly maxLength$: BehaviorSubject<number | null>;
+  readonly minLength$: BehaviorSubject<number | null>;
 }
 
 const privateData: WeakMap<RxTextInput, RxTextInputPrivate> = new WeakMap();
@@ -124,6 +162,8 @@ function createPrivate(instance: RxTextInput): RxTextInputPrivate {
   const data = {
     disconnected$: new Subject<void>(),
     mask$: new BehaviorSubject<Array<string | RegExp> | null>(null),
+    maxLength$: new BehaviorSubject<number | null>(null),
+    minLength$: new BehaviorSubject<number | null>(null),
     name$: new BehaviorSubject<string>(''),
     pattern$: new BehaviorSubject<RegExp | null>(null),
     pristine$: new BehaviorSubject(true),
@@ -169,6 +209,8 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
     ...controlObservedAttributes,
     RxTextInputAttributes.Pattern,
     RxTextInputAttributes.Mask,
+    RxTextInputAttributes.MaxLength,
+    RxTextInputAttributes.MinLength,
   ];
 
   /**
@@ -179,6 +221,14 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
    * Паттер для валидации
    */
   readonly rxPattern: Observable<RegExp | null>;
+  /**
+   * Максимальная длина
+   */
+  readonly rxMaxLength: Observable<number | null>;
+  /**
+   * Минимальная длина
+   */
+  readonly rxMinLength: Observable<number | null>;
 
   readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
@@ -223,6 +273,20 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
 
     this.rxPattern = getPrivate(this)
       .pattern$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    this.rxMaxLength = getPrivate(this)
+      .maxLength$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    this.rxMinLength = getPrivate(this)
+      .minLength$.asObservable()
       .pipe(
         distinctUntilChanged(isEqual),
         shareReplay(1),
@@ -291,6 +355,24 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
     getPrivate(this).pattern$.next(regExp);
   }
 
+  /**
+   * Устанавливает максимальную длину
+   *
+   * @param length Максимальная длина
+   */
+  setMaxLength(length: number | null) {
+    getPrivate(this).maxLength$.next(length);
+  }
+
+  /**
+   * Устанавливает минимальную длину
+   *
+   * @param length Минимальная длина
+   */
+  setMinLength(length: number | null) {
+    getPrivate(this).minLength$.next(length);
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
@@ -303,6 +385,24 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
       case RxTextInputAttributes.Pattern:
         this.setPattern(newValue !== null ? stringToRegExp(newValue) : null);
         break;
+      case RxTextInputAttributes.MaxLength: {
+        const length = newValue ? parseInt(newValue, 10) : null;
+        if (length !== null && Number.isNaN(length)) {
+          throw throwInvalidMaxLength();
+        }
+
+        this.setMaxLength(length);
+        break;
+      }
+      case RxTextInputAttributes.MinLength: {
+        const length = newValue ? parseInt(newValue, 10) : null;
+        if (length !== null && Number.isNaN(length)) {
+          throw throwInvalidMinLength();
+        }
+
+        this.setMinLength(length);
+        break;
+      }
       default:
         updateControlAttributesBehaviourSubjects(this, name, RxTextInput.tagName, newValue);
         break;

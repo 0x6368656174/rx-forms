@@ -63,11 +63,15 @@
             <textarea is="rx-textarea"
                 name="text"
                       required
+                      minlength="12"
+                      maxlength="16"
             >Это текст</textarea>
         </label>
 
         <rx-success>Текст введен</rx-success>
         <rx-error validator="required">Заполните данное поле</rx-error>
+        <rx-error validator="minlength">Поле должно в длину больше 12 символов</rx-error>
+        <rx-error validator="maxlength">Поле должно в длину меньше 16 символов</rx-error>
     </rx-form-field>
 </div>
 
