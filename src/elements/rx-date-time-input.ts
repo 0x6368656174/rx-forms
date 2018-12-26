@@ -4,6 +4,7 @@ import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from '
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
 import { Validators } from '../validators';
+import { maxDate } from '../validators/validator-max-date';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -24,6 +25,12 @@ import { updateAttribute } from './utils';
 enum RxDateTimeInputAttributes {
   Format = 'format',
   Locale = 'locale',
+  Max = 'max',
+  Min = 'min',
+}
+
+function throwInvalidMaxMin(attribute: RxDateTimeInputAttributes.Max | RxDateTimeInputAttributes.Min, format: string) {
+  return new Error(`Attribute "${attribute}" of <${RxDateTimeInput.tagName}> must be in format "${format}"`);
 }
 
 function throwAttributeFormatRequired(): Error {
@@ -202,6 +209,22 @@ function setValidators(control: RxDateTimeInput): void {
   const validator = control.rxValue.pipe(map(value => (value !== null ? value.isValid : true)));
 
   setValidator(data, Validators.Format, validator);
+
+  control.rxMax.pipe(takeUntil(control.rxDisconnected)).subscribe(max => {
+    if (!max) {
+      control.removeValidator(Validators.Max);
+    } else {
+      control.setValidator(Validators.Max, maxDate(control.rxValue, max));
+    }
+  });
+
+  control.rxMin.pipe(takeUntil(control.rxDisconnected)).subscribe(min => {
+    if (!min) {
+      control.removeValidator(Validators.Min);
+    } else {
+      control.setValidator(Validators.Min, maxDate(control.rxValue, min));
+    }
+  });
 }
 
 function subscribeToAttributeObservables(control: RxDateTimeInput): void {
@@ -212,11 +235,41 @@ function subscribeToAttributeObservables(control: RxDateTimeInput): void {
   control.rxLocale.pipe(takeUntil(control.rxDisconnected)).subscribe(locale => {
     updateAttribute(control, RxDateTimeInputAttributes.Locale, locale);
   });
+
+  combineLatest(control.rxFormat, control.rxLocale, control.rxMax)
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(([format, locale, max]) => {
+      let value: string | null = null;
+      if (max) {
+        if (locale) {
+          value = max.setLocale(locale).toFormat(format);
+        } else {
+          value = max.toFormat(format);
+        }
+      }
+      updateAttribute(control, RxDateTimeInputAttributes.Max, value);
+    });
+
+  combineLatest(control.rxFormat, control.rxLocale, control.rxMin)
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(([format, locale, min]) => {
+      let value: string | null = null;
+      if (min) {
+        if (locale) {
+          value = min.setLocale(locale).toFormat(format);
+        } else {
+          value = min.toFormat(format);
+        }
+      }
+      updateAttribute(control, RxDateTimeInputAttributes.Min, value);
+    });
 }
 
 interface RxTextInputPrivate extends ControlBehaviourSubjects<DateTime | null> {
   readonly format$: BehaviorSubject<string>;
   readonly locale$: BehaviorSubject<string | null>;
+  readonly max$: BehaviorSubject<DateTime | null>;
+  readonly min$: BehaviorSubject<DateTime | null>;
 }
 
 const privateData: WeakMap<RxDateTimeInput, RxTextInputPrivate> = new WeakMap();
@@ -228,12 +281,16 @@ function createPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   }
 
   const locale = instance.getAttribute(RxDateTimeInputAttributes.Format);
-  const value = DateTime.fromFormat(instance.value, format, { locale: locale || undefined });
+  const value = instance.value ? DateTime.fromFormat(instance.value, format, { locale: locale || undefined }) : null;
+  const max = instance.max ? DateTime.fromFormat(instance.max, format, { locale: locale || undefined }) : null;
+  const min = instance.min ? DateTime.fromFormat(instance.min, format, { locale: locale || undefined }) : null;
 
   const data = {
     disconnected$: new Subject<void>(),
     format$: new BehaviorSubject<string>(format),
     locale$: new BehaviorSubject<string | null>(locale),
+    max$: new BehaviorSubject<DateTime | null>(max),
+    min$: new BehaviorSubject<DateTime | null>(min),
     name$: new BehaviorSubject<string>(''),
     pristine$: new BehaviorSubject(true),
     readonly$: new BehaviorSubject<boolean>(false),
@@ -288,6 +345,14 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
    * Локаль
    */
   readonly rxLocale: Observable<string | null>;
+  /**
+   * Максимальная дата
+   */
+  readonly rxMax: Observable<DateTime | null>;
+  /**
+   * Минимальная дата
+   */
+  readonly rxMin: Observable<DateTime | null>;
 
   readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
@@ -332,6 +397,20 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
 
     this.rxLocale = getPrivate(this)
       .locale$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    this.rxMax = getPrivate(this)
+      .max$.asObservable()
+      .pipe(
+        distinctUntilChanged(isEqual),
+        shareReplay(1),
+      );
+
+    this.rxMin = getPrivate(this)
+      .min$.asObservable()
       .pipe(
         distinctUntilChanged(isEqual),
         shareReplay(1),
@@ -413,6 +492,24 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
     getPrivate(this).locale$.next(locale);
   }
 
+  /**
+   * Устанавливает максимальную дату
+   *
+   * @param max Дата
+   */
+  setMax(max: DateTime | null) {
+    getPrivate(this).max$.next(max);
+  }
+
+  /**
+   * Устанавливает минимальную дату
+   *
+   * @param min Дата
+   */
+  setMin(min: DateTime | null) {
+    getPrivate(this).min$.next(min);
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
@@ -428,6 +525,42 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
       case RxDateTimeInputAttributes.Locale:
         this.setLocale(newValue);
         break;
+      case RxDateTimeInputAttributes.Max: {
+        if (newValue !== null) {
+          const data = getPrivate(this);
+          const format = data.format$.getValue();
+          const locale = data.locale$.getValue();
+
+          const value = DateTime.fromFormat(newValue, format, { locale: locale || undefined });
+          if (!value.isValid) {
+            throwInvalidMaxMin(RxDateTimeInputAttributes.Max, format);
+          }
+
+          this.setMax(value);
+        } else {
+          this.setMax(null);
+        }
+
+        break;
+      }
+      case RxDateTimeInputAttributes.Min: {
+        if (newValue !== null) {
+          const data = getPrivate(this);
+          const format = data.format$.getValue();
+          const locale = data.locale$.getValue();
+
+          const value = DateTime.fromFormat(newValue, format, { locale: locale || undefined });
+          if (!value.isValid) {
+            throwInvalidMaxMin(RxDateTimeInputAttributes.Min, format);
+          }
+
+          this.setMin(value);
+        } else {
+          this.setMin(null);
+        }
+
+        break;
+      }
       default:
         updateControlAttributesBehaviourSubjects(this, name, RxDateTimeInput.tagName, newValue);
         break;
