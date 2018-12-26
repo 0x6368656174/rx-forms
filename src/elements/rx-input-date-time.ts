@@ -3,8 +3,7 @@ import { DateTime } from 'luxon';
 import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
-import { Validators } from '../validators';
-import { maxDate } from '../validators/validator-max-date';
+import { maxDate, minDate, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -22,19 +21,19 @@ import {
 } from './control';
 import { updateAttribute } from './utils';
 
-enum RxDateTimeInputAttributes {
+enum RxInputDateTimeAttributes {
   Format = 'format',
   Locale = 'locale',
   Max = 'max',
   Min = 'min',
 }
 
-function throwInvalidMaxMin(attribute: RxDateTimeInputAttributes.Max | RxDateTimeInputAttributes.Min, format: string) {
-  return new Error(`Attribute "${attribute}" of <${RxDateTimeInput.tagName}> must be in format "${format}"`);
+function throwInvalidMaxMin(attribute: RxInputDateTimeAttributes.Max | RxInputDateTimeAttributes.Min, format: string) {
+  return new Error(`Attribute "${attribute}" of <${RxInputDateTime.tagName}> must be in format "${format}"`);
 }
 
 function throwAttributeFormatRequired(): Error {
-  return new Error(`Attribute "${RxDateTimeInputAttributes.Format}" for <${RxDateTimeInput.tagName}> is required`);
+  return new Error(`Attribute "${RxInputDateTimeAttributes.Format}" for <${RxInputDateTime.tagName}> is required`);
 }
 
 // Взято из https://github.com/moment/luxon/blob/master/src/impl/formatter.js#L49
@@ -73,7 +72,7 @@ function parseFormat(fmt: string) {
   return splits;
 }
 
-function subscribeToValueChanges(control: RxDateTimeInput): void {
+function subscribeToValueChanges(control: RxInputDateTime): void {
   const textInputMaskElement$ = control.rxFormat.pipe(
     map(format => {
       if (!format) {
@@ -168,7 +167,7 @@ function subscribeToValueChanges(control: RxDateTimeInput): void {
       // Если хоть одну из букв не смогли превратить в маску, то маску включать не будем
       if (mask.some(char => char === null)) {
         console.info(
-          `Format "${format}" can not convert to <${RxDateTimeInput.tagName}> mask.` +
+          `Format "${format}" can not convert to <${RxInputDateTime.tagName}> mask.` +
             ` Supported only digital mask. Mask disabled.`,
         );
         return null;
@@ -203,7 +202,7 @@ function subscribeToValueChanges(control: RxDateTimeInput): void {
     });
 }
 
-function setValidators(control: RxDateTimeInput): void {
+function setValidators(control: RxInputDateTime): void {
   const data = getPrivate(control);
 
   const validator = control.rxValue.pipe(map(value => (value !== null ? value.isValid : true)));
@@ -222,18 +221,18 @@ function setValidators(control: RxDateTimeInput): void {
     if (!min) {
       control.removeValidator(Validators.Min);
     } else {
-      control.setValidator(Validators.Min, maxDate(control.rxValue, min));
+      control.setValidator(Validators.Min, minDate(control.rxValue, min));
     }
   });
 }
 
-function subscribeToAttributeObservables(control: RxDateTimeInput): void {
+function subscribeToAttributeObservables(control: RxInputDateTime): void {
   control.rxFormat.pipe(takeUntil(control.rxDisconnected)).subscribe(format => {
-    updateAttribute(control, RxDateTimeInputAttributes.Format, format);
+    updateAttribute(control, RxInputDateTimeAttributes.Format, format);
   });
 
   control.rxLocale.pipe(takeUntil(control.rxDisconnected)).subscribe(locale => {
-    updateAttribute(control, RxDateTimeInputAttributes.Locale, locale);
+    updateAttribute(control, RxInputDateTimeAttributes.Locale, locale);
   });
 
   combineLatest(control.rxFormat, control.rxLocale, control.rxMax)
@@ -247,7 +246,7 @@ function subscribeToAttributeObservables(control: RxDateTimeInput): void {
           value = max.toFormat(format);
         }
       }
-      updateAttribute(control, RxDateTimeInputAttributes.Max, value);
+      updateAttribute(control, RxInputDateTimeAttributes.Max, value);
     });
 
   combineLatest(control.rxFormat, control.rxLocale, control.rxMin)
@@ -261,26 +260,26 @@ function subscribeToAttributeObservables(control: RxDateTimeInput): void {
           value = min.toFormat(format);
         }
       }
-      updateAttribute(control, RxDateTimeInputAttributes.Min, value);
+      updateAttribute(control, RxInputDateTimeAttributes.Min, value);
     });
 }
 
-interface RxTextInputPrivate extends ControlBehaviourSubjects<DateTime | null> {
+interface RxInputDateTimePrivate extends ControlBehaviourSubjects<DateTime | null> {
   readonly format$: BehaviorSubject<string>;
   readonly locale$: BehaviorSubject<string | null>;
   readonly max$: BehaviorSubject<DateTime | null>;
   readonly min$: BehaviorSubject<DateTime | null>;
 }
 
-const privateData: WeakMap<RxDateTimeInput, RxTextInputPrivate> = new WeakMap();
+const privateData: WeakMap<RxInputDateTime, RxInputDateTimePrivate> = new WeakMap();
 
-function createPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
-  const format = instance.getAttribute(RxDateTimeInputAttributes.Format);
+function createPrivate(instance: RxInputDateTime): RxInputDateTimePrivate {
+  const format = instance.getAttribute(RxInputDateTimeAttributes.Format);
   if (format === null) {
     throw throwAttributeFormatRequired();
   }
 
-  const locale = instance.getAttribute(RxDateTimeInputAttributes.Format);
+  const locale = instance.getAttribute(RxInputDateTimeAttributes.Format);
   const value = instance.value ? DateTime.fromFormat(instance.value, format, { locale: locale || undefined }) : null;
   const max = instance.max ? DateTime.fromFormat(instance.max, format, { locale: locale || undefined }) : null;
   const min = instance.min ? DateTime.fromFormat(instance.min, format, { locale: locale || undefined }) : null;
@@ -305,7 +304,7 @@ function createPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
+function getPrivate(instance: RxInputDateTime): RxInputDateTimePrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -314,7 +313,7 @@ function getPrivate(instance: RxDateTimeInput): RxTextInputPrivate {
   return data;
 }
 
-function subscribeToObservables(control: RxDateTimeInput): void {
+function subscribeToObservables(control: RxInputDateTime): void {
   subscribeToValueChanges(control);
   subscribeToAttributeObservables(control);
 
@@ -326,15 +325,15 @@ function subscribeToObservables(control: RxDateTimeInput): void {
 /**
  * Поле ввода даты
  */
-export class RxDateTimeInput extends HTMLInputElement implements Control<DateTime | null> {
+export class RxInputDateTime extends HTMLInputElement implements Control<DateTime | null> {
   /** Тэг */
-  static readonly tagName: string = 'rx-date-time-input';
+  static readonly tagName: string = 'rx-input-date-time';
 
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
-    RxDateTimeInputAttributes.Format,
-    RxDateTimeInputAttributes.Locale,
+    RxInputDateTimeAttributes.Format,
+    RxInputDateTimeAttributes.Locale,
   ];
 
   /**
@@ -370,7 +369,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
   constructor() {
     super();
 
-    checkControlRequiredAttributes(this, RxDateTimeInput.tagName);
+    checkControlRequiredAttributes(this, RxInputDateTime.tagName);
 
     const data = createPrivate(this);
 
@@ -516,16 +515,16 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
     }
 
     switch (name) {
-      case RxDateTimeInputAttributes.Format:
+      case RxInputDateTimeAttributes.Format:
         if (!newValue) {
           throw throwAttributeFormatRequired();
         }
         this.setFormat(newValue);
         break;
-      case RxDateTimeInputAttributes.Locale:
+      case RxInputDateTimeAttributes.Locale:
         this.setLocale(newValue);
         break;
-      case RxDateTimeInputAttributes.Max: {
+      case RxInputDateTimeAttributes.Max: {
         if (newValue !== null) {
           const data = getPrivate(this);
           const format = data.format$.getValue();
@@ -533,7 +532,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
 
           const value = DateTime.fromFormat(newValue, format, { locale: locale || undefined });
           if (!value.isValid) {
-            throwInvalidMaxMin(RxDateTimeInputAttributes.Max, format);
+            throwInvalidMaxMin(RxInputDateTimeAttributes.Max, format);
           }
 
           this.setMax(value);
@@ -543,7 +542,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
 
         break;
       }
-      case RxDateTimeInputAttributes.Min: {
+      case RxInputDateTimeAttributes.Min: {
         if (newValue !== null) {
           const data = getPrivate(this);
           const format = data.format$.getValue();
@@ -551,7 +550,7 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
 
           const value = DateTime.fromFormat(newValue, format, { locale: locale || undefined });
           if (!value.isValid) {
-            throwInvalidMaxMin(RxDateTimeInputAttributes.Min, format);
+            throwInvalidMaxMin(RxInputDateTimeAttributes.Min, format);
           }
 
           this.setMin(value);
@@ -562,25 +561,25 @@ export class RxDateTimeInput extends HTMLInputElement implements Control<DateTim
         break;
       }
       default:
-        updateControlAttributesBehaviourSubjects(this, name, RxDateTimeInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxInputDateTime.tagName, newValue);
         break;
     }
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxDateTimeInput.tagName);
+    controlConnectedCallback(this, RxInputDateTime.tagName);
 
-    subscribeToControlObservables(this, this, RxDateTimeInput.tagName);
+    subscribeToControlObservables(this, this, RxInputDateTime.tagName);
     subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxDateTimeInput.tagName);
+    controlDisconnectedCallback(this, RxInputDateTime.tagName);
 
     unsubscribeFromObservables(getPrivate(this));
   }
 }
 
-customElements.define(RxDateTimeInput.tagName, RxDateTimeInput, { extends: 'input' });
+customElements.define(RxInputDateTime.tagName, RxInputDateTime, { extends: 'input' });

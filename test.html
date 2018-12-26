@@ -40,7 +40,7 @@
         <label>
             Телефон
 
-            <input is="rx-text-input"
+            <input is="rx-input-text"
                 name="phone"
                 required
                 pattern="\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}"
@@ -80,7 +80,7 @@
         <label>
             Дата
 
-            <input is="rx-date-time-input"
+            <input is="rx-input-date-time"
                    name="date"
                    required
                    value="16.10.1988, 03:21"
@@ -98,9 +98,31 @@
 <div>
     <rx-form-field>
         <label>
+            Число
+
+            <input is="rx-input-number"
+                   name="number"
+                   required
+                   type="number"
+                   step="0.05"
+                   min="2.1"
+                   max="3.2"
+            >
+        </label>
+
+        <rx-success>Число введено</rx-success>
+        <rx-error validator="required">Заполните данное поле</rx-error>
+        <rx-error validator="min">Введите большее число</rx-error>
+        <rx-error validator="max">Введите меньшее число</rx-error>
+    </rx-form-field>
+</div>
+
+<div>
+    <rx-form-field>
+        <label>
             Чекбокс
 
-            <input is="rx-checkbox-input"
+            <input is="rx-input-checkbox"
                    type="checkbox"
                    name="checkbox"
                    required
@@ -154,18 +176,17 @@
     </rx-form-field>
 </div>
 
-
 <div>
     Радио
     <rx-form-field>
         <label>
-            <input is="rx-radio-input" type="radio" name="radio" value="value-1" required>
+            <input is="rx-input-radio" type="radio" name="radio" value="value-1" required>
 
             Радио 1
         </label>
 
         <label>
-            <input is="rx-radio-input" type="radio" name="radio" value="value-2" readonly>
+            <input is="rx-input-radio" type="radio" name="radio" value="value-2" readonly>
 
             Радио 2
         </label>
@@ -219,6 +240,9 @@
 
     document.querySelector('input[name="radio"]').rxValue.subscribe(v => console.log(`Radio value: ${v}`));
     document.querySelector('input[name="radio"]').rxValid.subscribe(v => console.log(`Radio valid: ${v}`));
+
+    document.querySelector('input[name="number"]').rxValue.subscribe(v => console.log(`Number value: ${v}`));
+    document.querySelector('input[name="number"]').rxValid.subscribe(v => console.log(`Number valid: ${v}`));
 </script>
 </body>
 </html>

@@ -1,14 +1,13 @@
-import { DateTime } from 'luxon';
 import { Observable } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 
-export function minDate(rxValue: Observable<DateTime | null>, min: DateTime): Observable<boolean> {
-  const validator = (value: DateTime | null): boolean => {
+export function maxNumber(rxValue: Observable<number | null>, max: number): Observable<boolean> {
+  const validator = (value: number | null): boolean => {
     if (value === null) {
       return true;
     }
 
-    return value >= min;
+    return value <= max;
   };
 
   return rxValue.pipe(

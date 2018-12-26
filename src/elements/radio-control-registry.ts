@@ -1,18 +1,18 @@
 import { findParentFormField } from './control';
 import { emitDisconnected, RadioControl } from './radio-control';
 import { RxFormField } from './rx-form-field';
-import { RxRadioInput } from './rx-radio-input';
+import { RxInputRadio } from './rx-input-radio';
 
 // Контролы по полям
 const controls: WeakMap<RxFormField<string | null>, RadioControl> = new WeakMap();
 // Инпуты к полям
-const inputsToFormFields: WeakMap<RxRadioInput, RxFormField<string | null>> = new WeakMap();
+const inputsToFormFields: WeakMap<RxInputRadio, RxFormField<string | null>> = new WeakMap();
 // Количество контролов в поле
 const inputsCount: WeakMap<RxFormField<string | null>, number> = new WeakMap();
 
 export class RadioControlRegistry {
-  add(input: RxRadioInput, control: RadioControl): RadioControl {
-    const formField = findParentFormField<string | null>(input, RxRadioInput.tagName);
+  add(input: RxInputRadio, control: RadioControl): RadioControl {
+    const formField = findParentFormField<string | null>(input, RxInputRadio.tagName);
 
     const existControl = controls.get(formField);
     if (existControl !== undefined) {
@@ -31,7 +31,7 @@ export class RadioControlRegistry {
     return control;
   }
 
-  remove(input: RxRadioInput): void {
+  remove(input: RxInputRadio): void {
     const formField = inputsToFormFields.get(input);
     if (formField === undefined) {
       throw new Error('Not found parent form field for input');

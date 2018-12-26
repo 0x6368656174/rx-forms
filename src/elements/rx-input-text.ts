@@ -3,9 +3,7 @@ import { endsWith, isEqual, isString, startsWith } from 'lodash';
 import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';
-import { pattern, Validators } from '../validators';
-import { maxLength } from '../validators/validator-max-length';
-import { minLength } from '../validators/validator-min-length';
+import { maxLength, minLength, pattern, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -23,7 +21,7 @@ import {
 } from './control';
 import { updateAttribute } from './utils';
 
-enum RxTextInputAttributes {
+enum RxInputTextAttributes {
   Mask = 'mask',
   Pattern = 'pattern',
   MaxLength = 'maxlength',
@@ -31,14 +29,14 @@ enum RxTextInputAttributes {
 }
 
 function throwInvalidMaxLength() {
-  throw new Error(`Attribute "${RxTextInputAttributes.MaxLength}" of <${RxTextInput.tagName}> must be number.`);
+  throw new Error(`Attribute "${RxInputTextAttributes.MaxLength}" of <${RxInputText.tagName}> must be number.`);
 }
 
 function throwInvalidMinLength() {
-  throw new Error(`Attribute "${RxTextInputAttributes.MinLength}" of <${RxTextInput.tagName}> must be number.`);
+  throw new Error(`Attribute "${RxInputTextAttributes.MinLength}" of <${RxInputText.tagName}> must be number.`);
 }
 
-function subscribeToValueChanges(control: RxTextInput): void {
+function subscribeToValueChanges(control: RxInputText): void {
   const textInputMaskElement$ = control.rxMask.pipe(
     map(mask => {
       if (!mask) {
@@ -66,7 +64,7 @@ function subscribeToValueChanges(control: RxTextInput): void {
     });
 }
 
-function setValidators(control: RxTextInput): void {
+function setValidators(control: RxInputText): void {
   control.rxPattern.pipe(takeUntil(control.rxDisconnected)).subscribe(regExp => {
     if (!regExp) {
       control.removeValidator(Validators.Pattern);
@@ -92,22 +90,22 @@ function setValidators(control: RxTextInput): void {
   });
 }
 
-function subscribeToAttributeObservables(control: RxTextInput): void {
+function subscribeToAttributeObservables(control: RxInputText): void {
   control.rxMask.pipe(takeUntil(control.rxDisconnected)).subscribe(mask => {
     const stringMask = mask ? mask.map(element => `'${element.toString()}'`).join(', ') : null;
-    updateAttribute(control, RxTextInputAttributes.Mask, stringMask ? `[${stringMask}]` : null);
+    updateAttribute(control, RxInputTextAttributes.Mask, stringMask ? `[${stringMask}]` : null);
   });
 
   control.rxPattern.pipe(takeUntil(control.rxDisconnected)).subscribe(regExp => {
-    updateAttribute(control, RxTextInputAttributes.Pattern, regExp ? regExp.toString() : null);
+    updateAttribute(control, RxInputTextAttributes.Pattern, regExp ? regExp.toString() : null);
   });
 
   control.rxMaxLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
-    updateAttribute(control, RxTextInputAttributes.MaxLength, length ? length.toString() : null);
+    updateAttribute(control, RxInputTextAttributes.MaxLength, length ? length.toString() : null);
   });
 
   control.rxMinLength.pipe(takeUntil(control.rxDisconnected)).subscribe(length => {
-    updateAttribute(control, RxTextInputAttributes.MinLength, length ? length.toString() : null);
+    updateAttribute(control, RxInputTextAttributes.MinLength, length ? length.toString() : null);
   });
 }
 
@@ -148,7 +146,7 @@ function stringToRegExp(stringRegExp: string): RegExp {
   }
 }
 
-interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
+interface RxInputTextPrivate extends ControlBehaviourSubjects<string> {
   readonly value$: BehaviorSubject<string>;
   readonly mask$: BehaviorSubject<Array<string | RegExp> | null>;
   readonly pattern$: BehaviorSubject<RegExp | null>;
@@ -156,9 +154,9 @@ interface RxTextInputPrivate extends ControlBehaviourSubjects<string> {
   readonly minLength$: BehaviorSubject<number | null>;
 }
 
-const privateData: WeakMap<RxTextInput, RxTextInputPrivate> = new WeakMap();
+const privateData: WeakMap<RxInputText, RxInputTextPrivate> = new WeakMap();
 
-function createPrivate(instance: RxTextInput): RxTextInputPrivate {
+function createPrivate(instance: RxInputText): RxInputTextPrivate {
   const data = {
     disconnected$: new Subject<void>(),
     mask$: new BehaviorSubject<Array<string | RegExp> | null>(null),
@@ -179,7 +177,7 @@ function createPrivate(instance: RxTextInput): RxTextInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxTextInput): RxTextInputPrivate {
+function getPrivate(instance: RxInputText): RxInputTextPrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -188,7 +186,7 @@ function getPrivate(instance: RxTextInput): RxTextInputPrivate {
   return data;
 }
 
-function subscribeToObservables(control: RxTextInput): void {
+function subscribeToObservables(control: RxInputText): void {
   subscribeToValueChanges(control);
   subscribeToAttributeObservables(control);
 
@@ -200,17 +198,17 @@ function subscribeToObservables(control: RxTextInput): void {
 /**
  * Поле ввода текста
  */
-export class RxTextInput extends HTMLInputElement implements Control<string> {
+export class RxInputText extends HTMLInputElement implements Control<string> {
   /** Тэг */
-  static readonly tagName: string = 'rx-text-input';
+  static readonly tagName: string = 'rx-input-text';
 
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
-    RxTextInputAttributes.Pattern,
-    RxTextInputAttributes.Mask,
-    RxTextInputAttributes.MaxLength,
-    RxTextInputAttributes.MinLength,
+    RxInputTextAttributes.Pattern,
+    RxInputTextAttributes.Mask,
+    RxInputTextAttributes.MaxLength,
+    RxInputTextAttributes.MinLength,
   ];
 
   /**
@@ -246,7 +244,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
   constructor() {
     super();
 
-    checkControlRequiredAttributes(this, RxTextInput.tagName);
+    checkControlRequiredAttributes(this, RxInputText.tagName);
 
     const data = createPrivate(this);
 
@@ -379,13 +377,13 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
     }
 
     switch (name) {
-      case RxTextInputAttributes.Mask:
+      case RxInputTextAttributes.Mask:
         this.setMask(newValue !== null ? maskStringToArray(newValue) : null);
         break;
-      case RxTextInputAttributes.Pattern:
+      case RxInputTextAttributes.Pattern:
         this.setPattern(newValue !== null ? stringToRegExp(newValue) : null);
         break;
-      case RxTextInputAttributes.MaxLength: {
+      case RxInputTextAttributes.MaxLength: {
         const length = newValue ? parseInt(newValue, 10) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMaxLength();
@@ -394,7 +392,7 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
         this.setMaxLength(length);
         break;
       }
-      case RxTextInputAttributes.MinLength: {
+      case RxInputTextAttributes.MinLength: {
         const length = newValue ? parseInt(newValue, 10) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMinLength();
@@ -404,25 +402,25 @@ export class RxTextInput extends HTMLInputElement implements Control<string> {
         break;
       }
       default:
-        updateControlAttributesBehaviourSubjects(this, name, RxTextInput.tagName, newValue);
+        updateControlAttributesBehaviourSubjects(this, name, RxInputText.tagName, newValue);
         break;
     }
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxTextInput.tagName);
+    controlConnectedCallback(this, RxInputText.tagName);
 
-    subscribeToControlObservables(this, this, RxTextInput.tagName);
+    subscribeToControlObservables(this, this, RxInputText.tagName);
     subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxTextInput.tagName);
+    controlDisconnectedCallback(this, RxInputText.tagName);
 
     unsubscribeFromObservables(getPrivate(this));
   }
 }
 
-customElements.define(RxTextInput.tagName, RxTextInput, { extends: 'input' });
+customElements.define(RxInputText.tagName, RxInputText, { extends: 'input' });

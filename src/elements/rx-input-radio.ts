@@ -11,7 +11,7 @@ import {
 import { RadioControl } from './radio-control';
 import { RadioControlRegistry } from './radio-control-registry';
 
-function subscribeToValueChanges(control: RxRadioInput): void {
+function subscribeToValueChanges(control: RxInputRadio): void {
   fromEvent(control, 'change')
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
@@ -27,14 +27,14 @@ function subscribeToValueChanges(control: RxRadioInput): void {
   });
 }
 
-interface RxRadioInputPrivate {
+interface RxInputRadioPrivate {
   control$: BehaviorSubject<RadioControl>;
   disconnected$: Subject<void>;
 }
 
-const privateData: WeakMap<RxRadioInput, RxRadioInputPrivate> = new WeakMap();
+const privateData: WeakMap<RxInputRadio, RxInputRadioPrivate> = new WeakMap();
 
-function createPrivate(instance: RxRadioInput): RxRadioInputPrivate {
+function createPrivate(instance: RxInputRadio): RxInputRadioPrivate {
   const data = {
     control$: new BehaviorSubject<RadioControl>(new RadioControl()),
     disconnected$: new Subject<void>(),
@@ -45,7 +45,7 @@ function createPrivate(instance: RxRadioInput): RxRadioInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxRadioInput): RxRadioInputPrivate {
+function getPrivate(instance: RxInputRadio): RxInputRadioPrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -54,13 +54,13 @@ function getPrivate(instance: RxRadioInput): RxRadioInputPrivate {
   return data;
 }
 
-function getControl(instance: RxRadioInput): RadioControl {
+function getControl(instance: RxInputRadio): RadioControl {
   return getPrivate(instance).control$.getValue();
 }
 
 const registry = new RadioControlRegistry();
 
-function subscribeToObservables(control: RxRadioInput): void {
+function subscribeToObservables(control: RxInputRadio): void {
   subscribeToValueChanges(control);
 
   combineLatest(fromEvent(control, 'blur'))
@@ -71,9 +71,9 @@ function subscribeToObservables(control: RxRadioInput): void {
 /**
  * @internal
  */
-export class RxRadioInput extends HTMLInputElement implements Control<string | null> {
+export class RxInputRadio extends HTMLInputElement implements Control<string | null> {
   /** Тэг */
-  static readonly tagName: string = 'rx-radio-input';
+  static readonly tagName: string = 'rx-input-radio';
 
   /** @internal */
   static readonly observedAttributes = controlObservedAttributes;
@@ -94,7 +94,7 @@ export class RxRadioInput extends HTMLInputElement implements Control<string | n
   constructor() {
     super();
 
-    checkControlRequiredAttributes(this, RxRadioInput.tagName);
+    checkControlRequiredAttributes(this, RxInputRadio.tagName);
 
     const data = createPrivate(this);
 
@@ -158,7 +158,7 @@ export class RxRadioInput extends HTMLInputElement implements Control<string | n
       return;
     }
 
-    updateControlAttributesBehaviourSubjects(this, name, RxRadioInput.tagName, newValue);
+    updateControlAttributesBehaviourSubjects(this, name, RxInputRadio.tagName, newValue);
   }
 
   /** @internal */
@@ -176,7 +176,7 @@ export class RxRadioInput extends HTMLInputElement implements Control<string | n
       data.control$.next(newControl);
     }
 
-    subscribeToControlObservables(this, this, RxRadioInput.tagName);
+    subscribeToControlObservables(this, this, RxInputRadio.tagName);
     subscribeToObservables(this);
   }
 
@@ -197,4 +197,4 @@ export class RxRadioInput extends HTMLInputElement implements Control<string | n
   }
 }
 
-customElements.define(RxRadioInput.tagName, RxRadioInput, { extends: 'input' });
+customElements.define(RxInputRadio.tagName, RxInputRadio, { extends: 'input' });

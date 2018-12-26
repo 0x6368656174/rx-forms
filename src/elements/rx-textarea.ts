@@ -1,9 +1,7 @@
 import { isEqual } from 'lodash';
 import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
-import { Validators } from '../validators';
-import { maxLength } from '../validators/validator-max-length';
-import { minLength } from '../validators/validator-min-length';
+import { maxLength, minLength, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,

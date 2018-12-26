@@ -17,7 +17,7 @@ import {
 } from './control';
 import { updateAttribute } from './utils';
 
-function subscribeToValueChanges(control: RxCheckboxInput): void {
+function subscribeToValueChanges(control: RxInputCheckbox): void {
   fromEvent(control, 'change')
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
@@ -25,11 +25,11 @@ function subscribeToValueChanges(control: RxCheckboxInput): void {
     });
 }
 
-type RxCheckboxInputPrivate = ControlBehaviourSubjects<boolean>;
+type RxInputCheckboxPrivate = ControlBehaviourSubjects<boolean>;
 
-const privateData: WeakMap<RxCheckboxInput, RxCheckboxInputPrivate> = new WeakMap();
+const privateData: WeakMap<RxInputCheckbox, RxInputCheckboxPrivate> = new WeakMap();
 
-function createPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
+function createPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
   const data = {
     disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
@@ -46,7 +46,7 @@ function createPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
   return data;
 }
 
-function getPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
+function getPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
   const data = privateData.get(instance);
   if (data === undefined) {
     throw new Error('Something wrong =(');
@@ -55,7 +55,7 @@ function getPrivate(instance: RxCheckboxInput): RxCheckboxInputPrivate {
   return data;
 }
 
-function subscribeToObservables(control: RxCheckboxInput): void {
+function subscribeToObservables(control: RxInputCheckbox): void {
   subscribeToValueChanges(control);
 
   fromEvent(control, 'blur')
@@ -66,9 +66,9 @@ function subscribeToObservables(control: RxCheckboxInput): void {
 /**
  * Чекбокс
  */
-export class RxCheckboxInput extends HTMLInputElement implements Control<boolean> {
+export class RxInputCheckbox extends HTMLInputElement implements Control<boolean> {
   /** Тэг */
-  static readonly tagName: string = 'rx-checkbox-input';
+  static readonly tagName: string = 'rx-input-checkbox';
 
   /** @internal */
   static readonly observedAttributes = controlObservedAttributes;
@@ -89,7 +89,7 @@ export class RxCheckboxInput extends HTMLInputElement implements Control<boolean
   constructor() {
     super();
 
-    checkControlRequiredAttributes(this, RxCheckboxInput.tagName);
+    checkControlRequiredAttributes(this, RxInputCheckbox.tagName);
 
     const data = createPrivate(this);
 
@@ -155,23 +155,23 @@ export class RxCheckboxInput extends HTMLInputElement implements Control<boolean
       return;
     }
 
-    updateControlAttributesBehaviourSubjects(this, name, RxCheckboxInput.tagName, newValue);
+    updateControlAttributesBehaviourSubjects(this, name, RxInputCheckbox.tagName, newValue);
   }
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxCheckboxInput.tagName);
+    controlConnectedCallback(this, RxInputCheckbox.tagName);
 
-    subscribeToControlObservables(this, this, RxCheckboxInput.tagName);
+    subscribeToControlObservables(this, this, RxInputCheckbox.tagName);
     subscribeToObservables(this);
   }
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxCheckboxInput.tagName);
+    controlDisconnectedCallback(this, RxInputCheckbox.tagName);
 
     unsubscribeFromObservables(getPrivate(this));
   }
 }
 
-customElements.define(RxCheckboxInput.tagName, RxCheckboxInput, { extends: 'input' });
+customElements.define(RxInputCheckbox.tagName, RxInputCheckbox, { extends: 'input' });
