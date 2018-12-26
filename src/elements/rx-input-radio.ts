@@ -90,6 +90,7 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string | null>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -111,6 +112,7 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
     this.rxValid = data.control$.asObservable().pipe(switchMap(control => control.rxValid));
     this.rxInvalid = data.control$.asObservable().pipe(switchMap(control => control.rxInvalid));
     this.rxValidationErrors = data.control$.asObservable().pipe(switchMap(control => control.rxValidationErrors));
+    this.rxSet = data.control$.asObservable().pipe(switchMap(control => control.rxSet));
   }
 
   markAsDirty(): void {

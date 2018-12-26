@@ -7,6 +7,10 @@ export function minNumber(rxValue: Observable<number | null>, min: number): Obse
       return true;
     }
 
+    if (Number.isNaN(value)) {
+      return true;
+    }
+
     return value >= min;
   };
 

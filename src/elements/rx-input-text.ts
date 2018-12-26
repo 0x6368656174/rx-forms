@@ -37,6 +37,8 @@ function throwInvalidMinLength() {
 }
 
 function subscribeToValueChanges(control: RxInputText): void {
+  const data = getPrivate(control);
+
   const textInputMaskElement$ = control.rxMask.pipe(
     map(mask => {
       if (!mask) {
@@ -55,12 +57,12 @@ function subscribeToValueChanges(control: RxInputText): void {
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(([_, textInputMaskElement]) => {
       if (textInputMaskElement === null) {
-        control.setValue(control.value);
+        data.value$.next(control.value);
         return;
       }
 
       textInputMaskElement.update(control.value);
-      control.setValue(control.value);
+      data.value$.next(control.value);
     });
 }
 
@@ -240,6 +242,7 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -289,6 +292,12 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
+
+    this.rxSet = this.rxValue.pipe(
+      map(value => value.length !== 0),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     setValidators(this);
   }
@@ -384,7 +393,7 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
         this.setPattern(newValue !== null ? stringToRegExp(newValue) : null);
         break;
       case RxInputTextAttributes.MaxLength: {
-        const length = newValue ? parseInt(newValue, 10) : null;
+        const length = newValue ? Number(newValue) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMaxLength();
         }
@@ -393,7 +402,7 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
         break;
       }
       case RxInputTextAttributes.MinLength: {
-        const length = newValue ? parseInt(newValue, 10) : null;
+        const length = newValue ? Number(newValue) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMinLength();
         }

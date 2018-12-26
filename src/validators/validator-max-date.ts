@@ -8,6 +8,10 @@ export function maxDate(rxValue: Observable<DateTime | null>, max: DateTime): Ob
       return true;
     }
 
+    if (!value.isValid) {
+      return true;
+    }
+
     return value <= max;
   };
 

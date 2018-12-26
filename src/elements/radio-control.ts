@@ -59,6 +59,7 @@ export class RadioControl implements Control<string | null> {
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string | null>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     const data = createPrivate(this);
@@ -76,6 +77,7 @@ export class RadioControl implements Control<string | null> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+    this.rxSet = observables.rxSet;
   }
 
   markAsDirty(): void {

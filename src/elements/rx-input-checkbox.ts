@@ -1,5 +1,6 @@
+import { isEqual } from 'lodash';
 import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
 import {
   checkControlRequiredAttributes,
   Control,
@@ -18,10 +19,12 @@ import {
 import { updateAttribute } from './utils';
 
 function subscribeToValueChanges(control: RxInputCheckbox): void {
+  const data = getPrivate(control);
+
   fromEvent(control, 'change')
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      control.setValue(control.checked);
+      data.value$.next(control.checked);
     });
 }
 
@@ -85,6 +88,7 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<boolean>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -106,6 +110,11 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+
+    this.rxSet = this.rxValue.pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
   markAsDirty(): void {

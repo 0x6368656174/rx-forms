@@ -1,6 +1,6 @@
 import { isEqual } from 'lodash';
 import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
-import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { maxLength, minLength, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
@@ -33,10 +33,12 @@ function throwInvalidMinLength() {
 }
 
 function subscribeToValueChanges(control: RxTextarea): void {
+  const data = getPrivate(control);
+
   fromEvent(control, 'input')
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      control.setValue(control.value);
+      data.value$.next(control.value);
     });
 }
 
@@ -147,6 +149,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<string>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -182,6 +185,12 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
+
+    this.rxSet = this.rxValue.pipe(
+      map(value => value.length !== 0),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     setValidators(this);
   }
@@ -253,7 +262,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
     switch (name) {
       case RxTextareaAttributes.MaxLength: {
-        const length = newValue ? parseInt(newValue, 10) : null;
+        const length = newValue ? Number(newValue) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMaxLength();
         }
@@ -262,7 +271,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
         break;
       }
       case RxTextareaAttributes.MinLength: {
-        const length = newValue ? parseInt(newValue, 10) : null;
+        const length = newValue ? Number(newValue) : null;
         if (length !== null && Number.isNaN(length)) {
           throw throwInvalidMinLength();
         }

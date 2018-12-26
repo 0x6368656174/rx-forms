@@ -1,6 +1,6 @@
 import { isEqual } from 'lodash';
 import { BehaviorSubject, fromEvent, merge, Observable, Subject } from 'rxjs';
-import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { maxNumber, minNumber, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
@@ -28,20 +28,16 @@ function throwInvalidMaxMin(attribute: RxInputNumberAttributes.Max | RxInputNumb
   throw new Error(`Attribute "${attribute}" of <${RxInputNumber.tagName}> must be number.`);
 }
 
-function throwInvalidValue() {
-  throw new Error(`Value must be number`);
-}
-
 function subscribeToValueChanges(control: RxInputNumber): void {
+  const data = getPrivate(control);
+
   merge(fromEvent(control, 'change'), fromEvent(control, 'input'))
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      const value: number | null = control.value ? parseFloat(control.value.replace(',', '.')) : null;
-      if (value !== null && Number.isNaN(value)) {
-        throw throwInvalidValue();
-      }
+      const controlValue: string | number = control.value.replace(',', '.');
+      const value: number | null = control.value ? Number(controlValue) : null;
 
-      control.setValue(value);
+      data.value$.next(value);
     });
 }
 
@@ -53,10 +49,7 @@ interface RxInputNumberPrivate extends ControlBehaviourSubjects<number | null> {
 const privateData: WeakMap<RxInputNumber, RxInputNumberPrivate> = new WeakMap();
 
 function createPrivate(instance: RxInputNumber): RxInputNumberPrivate {
-  const value: number | null = instance.value ? parseFloat(instance.value.replace(',', '.')) : null;
-  if (value !== null && Number.isNaN(value)) {
-    throw throwInvalidValue();
-  }
+  const value: number | null = instance.value ? Number(instance.value.replace(',', '.')) : null;
 
   const data = {
     disconnected$: new Subject<void>(),
@@ -86,6 +79,12 @@ function getPrivate(instance: RxInputNumber): RxInputNumberPrivate {
 }
 
 function setValidators(control: RxInputNumber): void {
+  const data = getPrivate(control);
+
+  const validator = control.rxValue.pipe(map(value => (value !== null ? !Number.isNaN(value) : true)));
+
+  setValidator(data, Validators.Format, validator);
+
   control.rxMax.pipe(takeUntil(control.rxDisconnected)).subscribe(max => {
     if (!max) {
       control.removeValidator(Validators.Max);
@@ -157,6 +156,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<number | null>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -178,6 +178,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+    this.rxSet = observables.rxSet;
 
     this.rxMax = getPrivate(this)
       .max$.asObservable()
@@ -233,11 +234,8 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   }
 
   setValue(value: number | null): void {
-    const currentNumber = parseFloat(this.value.replace(',', '.'));
-    if (currentNumber !== value) {
-      this.value = value ? value.toString() : '';
-    }
     getPrivate(this).value$.next(value);
+    this.value = value ? value.toString() : '';
     this.markAsDirty();
   }
 
@@ -266,7 +264,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
 
     switch (name) {
       case RxInputNumberAttributes.Max: {
-        const value = newValue ? parseFloat(newValue.replace(',', '.')) : null;
+        const value = newValue ? Number(newValue.replace(',', '.')) : null;
         if (value !== null && Number.isNaN(value)) {
           throw throwInvalidMaxMin(RxInputNumberAttributes.Max);
         }
@@ -275,7 +273,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
         break;
       }
       case RxInputNumberAttributes.Min: {
-        const value = newValue ? parseFloat(newValue.replace(',', '.')) : null;
+        const value = newValue ? Number(newValue.replace(',', '.')) : null;
         if (value !== null && Number.isNaN(value)) {
           throw throwInvalidMaxMin(RxInputNumberAttributes.Min);
         }

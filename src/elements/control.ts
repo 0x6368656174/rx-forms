@@ -168,15 +168,7 @@ function bindControlObservablesToValidators<T>(control: Control<T>): void {
     if (!required) {
       control.removeValidator(ValidatorsName.Required);
     } else {
-      const validator = control.rxValue.pipe(
-        map(value => {
-          if (Array.isArray(value)) {
-            return value.length !== 0;
-          }
-
-          return !!value;
-        }),
-      );
+      const validator = control.rxSet;
 
       control.setValidator(ValidatorsName.Required, validator);
     }
@@ -301,6 +293,7 @@ export interface ControlObservables<T>
   rxUntouched: Observable<boolean>;
   rxInvalid: Observable<boolean>;
   rxValidationErrors: Observable<string[]>;
+  rxSet: Observable<boolean>;
 }
 
 export function createControlObservables<T>(behaviourSubjects: ControlBehaviourSubjects<T>): ControlObservables<T> {
@@ -364,6 +357,12 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
 
   const rxDisconnected = behaviourSubjects.disconnected$.asObservable();
 
+  const rxSet = rxValue.pipe(
+    map(value => value !== null),
+    distinctUntilChanged(isEqual),
+    shareReplay(1),
+  );
+
   return {
     rxDirty,
     rxDisconnected,
@@ -372,6 +371,7 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
     rxPristine,
     rxReadonly,
     rxRequired,
+    rxSet,
     rxTouched,
     rxUntouched,
     rxValid,
@@ -405,6 +405,8 @@ export interface Control<T> extends ControlObservables<T> {
   readonly rxValidationErrors: Observable<string[]>;
   /** Вызывается, когда элемент удален из DOM */
   readonly rxDisconnected: Observable<void>;
+  /** Признак того, что полю установлено значение */
+  readonly rxSet: Observable<boolean>;
 
   /**
    * Устанавливает имя

@@ -8,6 +8,10 @@ export function minDate(rxValue: Observable<DateTime | null>, min: DateTime): Ob
       return true;
     }
 
+    if (!value.isValid) {
+      return true;
+    }
+
     return value >= min;
   };
 

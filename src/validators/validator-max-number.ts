@@ -7,6 +7,10 @@ export function maxNumber(rxValue: Observable<number | null>, max: number): Obse
       return true;
     }
 
+    if (Number.isNaN(value)) {
+      return true;
+    }
+
     return value <= max;
   };
 

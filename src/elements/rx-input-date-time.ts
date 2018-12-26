@@ -73,6 +73,8 @@ function parseFormat(fmt: string) {
 }
 
 function subscribeToValueChanges(control: RxInputDateTime): void {
+  const data = getPrivate(control);
+
   const textInputMaskElement$ = control.rxFormat.pipe(
     map(format => {
       if (!format) {
@@ -194,10 +196,10 @@ function subscribeToValueChanges(control: RxInputDateTime): void {
       }
 
       if (value === '') {
-        control.setValue(null);
+        data.value$.next(null);
       } else {
         const dateTime = DateTime.fromFormat(value, format, { locale: locale || undefined });
-        control.setValue(dateTime);
+        data.value$.next(dateTime);
       }
     });
 }
@@ -365,6 +367,7 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
   readonly rxValid: Observable<boolean>;
   readonly rxValidationErrors: Observable<string[]>;
   readonly rxValue: Observable<DateTime | null>;
+  readonly rxSet: Observable<boolean>;
 
   constructor() {
     super();
@@ -386,6 +389,7 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
+    this.rxSet = observables.rxSet;
 
     this.rxFormat = getPrivate(this)
       .format$.asObservable()
