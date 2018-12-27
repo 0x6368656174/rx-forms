@@ -2,6 +2,7 @@ import { isEqual } from 'lodash';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, shareReplay } from 'rxjs/operators';
 import { Control } from './control';
+import { Elements } from './elements';
 
 interface RxFormFieldPrivate<T> {
   control$: BehaviorSubject<Control<T> | null>;
@@ -35,7 +36,7 @@ function getPrivate<T>(instance: RxFormField<T>): RxFormFieldPrivate<T> {
  */
 export class RxFormField<T> extends HTMLElement {
   /** Тег */
-  static readonly tagName = 'rx-form-field';
+  static readonly tagName = Elements.RxFormField;
   /**
    * Контрол
    */

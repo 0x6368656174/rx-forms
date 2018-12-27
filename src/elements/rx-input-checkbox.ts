@@ -16,6 +16,7 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { Elements } from './elements';
 import { updateAttribute } from './utils';
 
 function subscribeToValueChanges(control: RxInputCheckbox): void {
@@ -72,7 +73,7 @@ function subscribeToObservables(control: RxInputCheckbox): void {
  */
 export class RxInputCheckbox extends HTMLInputElement implements Control<boolean> {
   /** Тэг */
-  static readonly tagName: string = 'rx-input-checkbox';
+  static readonly tagName: string = Elements.RxInputCheckbox;
 
   /** @internal */
   static readonly observedAttributes = controlObservedAttributes;

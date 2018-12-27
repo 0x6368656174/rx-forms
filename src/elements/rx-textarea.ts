@@ -17,6 +17,7 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { Elements } from './elements';
 import { updateAttribute } from './utils';
 
 enum RxTextareaAttributes {
@@ -120,7 +121,7 @@ function subscribeToObservables(control: RxTextarea): void {
  */
 export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
   /** Тэг */
-  static readonly tagName: string = 'rx-textarea';
+  static readonly tagName: string = Elements.RxTextarea;
 
   /** @internal */
   static readonly observedAttributes = [

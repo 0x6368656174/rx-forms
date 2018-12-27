@@ -19,6 +19,7 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { Elements } from './elements';
 import { updateAttribute } from './utils';
 
 enum RxInputDateTimeAttributes {
@@ -330,7 +331,7 @@ function subscribeToObservables(control: RxInputDateTime): void {
  */
 export class RxInputDateTime extends HTMLInputElement implements Control<DateTime | null> {
   /** Тэг */
-  static readonly tagName: string = 'rx-input-date-time';
+  static readonly tagName: string = Elements.RxInputDateTime;
 
   /** @internal */
   static readonly observedAttributes = [

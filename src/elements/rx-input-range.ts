@@ -17,6 +17,7 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { Elements } from './elements';
 import { updateAttribute } from './utils';
 
 enum RxInputRangeAttributes {
@@ -124,7 +125,7 @@ function subscribeToObservables(control: RxInputRange): void {
  */
 export class RxInputRange extends HTMLInputElement implements Control<number> {
   /** Тэг */
-  static readonly tagName: string = 'rx-input-range';
+  static readonly tagName: string = Elements.RxInputRange;
 
   /** @internal */
   static readonly observedAttributes = [

@@ -1,5 +1,6 @@
 import { fromEvent, Observable } from 'rxjs';
 import { mapTo } from 'rxjs/operators';
+import { Elements } from './elements';
 import { RxForm } from './rx-form';
 import { findParentForm } from './utils';
 
@@ -24,7 +25,7 @@ function getDomPrivate(instance: RxSubmit): RxSubmitDomPrivate {
 
 export class RxSubmit extends HTMLButtonElement {
   /** Тэг */
-  static readonly tagName = 'rx-submit';
+  static readonly tagName = Elements.RxSubmit;
 
   /** Observable, который эмитирует новые значения при клике по кнопке */
   readonly rxClick: Observable<void>;

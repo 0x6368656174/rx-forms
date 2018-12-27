@@ -1,0 +1,16 @@
+export enum Elements {
+  RxError = 'rx-error',
+  RxForm = 'rx-form',
+  RxFormField = 'rx-form-field',
+  RxInputCheckbox = 'rx-input-checkbox',
+  RxInputDateTime = 'rx-input-date-time',
+  RxInputNumber = 'rx-input-number',
+  RxInputRadio = 'rx-input-radio',
+  RxInputRange = 'rx-input-range',
+  RxInputText = 'rx-input-text',
+  RxSelect = 'rx-select',
+  RxSelectMultiple = 'rx-select-multiple',
+  RxSubmit = 'rx-submit',
+  RxSuccess = 'rx-success',
+  RxTextarea = 'rx-textarea',
+}

@@ -1,3 +1,4 @@
+import { Elements } from './elements';
 import { emitDisconnected, RadioControl } from './radio-control';
 import { RxForm } from './rx-form';
 import { RxInputRadio } from './rx-input-radio';
@@ -12,7 +13,8 @@ const inputsCount: WeakMap<RadioControl, number> = new WeakMap();
 
 export class RadioControlRegistry {
   add(input: RxInputRadio, control: RadioControl): RadioControl {
-    const form = findParentForm(input, RxInputRadio.tagName);
+    // Не используем тут RxInputRadio.tagName, т.к. это вызовет цикличную зависимость
+    const form = findParentForm(input, Elements.RxInputRadio);
 
     let formControls = controls.get(form);
     if (formControls === undefined) {

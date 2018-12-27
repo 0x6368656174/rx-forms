@@ -11,6 +11,7 @@ import {
   withLatestFrom,
 } from 'rxjs/operators';
 import { Control } from './control';
+import { Elements } from './elements';
 import { RxSubmit } from './rx-submit';
 
 interface RxFormPrivate {
@@ -72,7 +73,7 @@ type Controls = Array<Control<any>>;
 
 export class RxForm extends HTMLFormElement {
   /** Тэг */
-  static readonly tagName = 'rx-form';
+  static readonly tagName = Elements.RxForm;
   /** Все контролы */
   readonly rxControls: Observable<Controls>;
   /** Признак того, что все контролы формы прошли валидацию */

@@ -12,3 +12,4 @@ export * from './rx-error';
 export * from './rx-success';
 export * from './rx-form';
 export * from './rx-submit';
+export * from './elements';

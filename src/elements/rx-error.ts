@@ -3,6 +3,7 @@ import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil, withLatestFrom } from 'rxjs/operators';
 import { Control } from './control';
 import { CustomElement } from './custom-element';
+import { Elements } from './elements';
 import { RxFormField } from './rx-form-field';
 import { updateAttribute } from './utils';
 
@@ -64,7 +65,7 @@ export class RxError extends HTMLElement implements CustomElement {
   /** @internal */
   static readonly observedAttributes = [RxErrorAttributes.Validator];
   /** Тег */
-  static readonly tagName = 'rx-error';
+  static readonly tagName = Elements.RxError;
   /**
    * Валидатор
    */

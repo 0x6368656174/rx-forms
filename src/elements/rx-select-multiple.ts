@@ -16,6 +16,7 @@ import {
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
 } from './control';
+import { Elements } from './elements';
 
 enum RxSelectMultipleAttributes {
   Multiple = 'multiple',
@@ -105,7 +106,7 @@ function subscribeToObservables(control: RxSelectMultiple): void {
  */
 export class RxSelectMultiple extends HTMLSelectElement implements Control<string[]> {
   /** Тэг */
-  static readonly tagName: string = 'rx-select-multiple';
+  static readonly tagName: string = Elements.RxSelectMultiple;
 
   /** @internal */
   static readonly observedAttributes = [...controlObservedAttributes, RxSelectMultipleAttributes.Multiple];

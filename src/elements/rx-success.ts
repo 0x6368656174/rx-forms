@@ -3,6 +3,7 @@ import { combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 import { Control } from './control';
 import { CustomElement } from './custom-element';
+import { Elements } from './elements';
 import { RxFormField } from './rx-form-field';
 
 function findParentFormField(this: RxSuccess): RxFormField<any> {
@@ -41,7 +42,7 @@ function getPrivate(instance: RxSuccess): RxSuccessPrivate {
 
 export class RxSuccess extends HTMLElement implements CustomElement {
   /** Тег */
-  static readonly tagName = 'rx-success';
+  static readonly tagName = Elements.RxSuccess;
 
   /** Вызывается, когда элемент удален из DOM */
   readonly rxDisconnected: Observable<void>;

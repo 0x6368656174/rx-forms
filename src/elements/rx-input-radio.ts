@@ -8,6 +8,7 @@ import {
   unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
 } from './control';
+import { Elements } from './elements';
 import { RadioControl } from './radio-control';
 import { RadioControlRegistry } from './radio-control-registry';
 import { RxFormField } from './rx-form-field';
@@ -77,7 +78,7 @@ function subscribeToObservables(control: RxInputRadio): void {
  */
 export class RxInputRadio extends HTMLInputElement implements Control<string | null> {
   /** Тэг */
-  static readonly tagName: string = 'rx-input-radio';
+  static readonly tagName: string = Elements.RxInputRadio;
 
   /** @internal */
   static readonly observedAttributes = controlObservedAttributes;
