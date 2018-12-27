@@ -4,29 +4,10 @@ import sourceMaps from 'rollup-plugin-sourcemaps';
 import typescript from 'rollup-plugin-typescript2';
 import json from 'rollup-plugin-json';
 
-const pkg = require('./package.json');
-
-module.exports = {
+const config = {
   input: 'src/index.ts',
-  output: [
-    // {
-    //   file: `${pkg.main}.js`,
-    //   format: 'cjs',
-    // },
-    {
-      file: `${pkg.main}.js`,
-      name: 'rxForms',
-      format: 'iife',
-    },
-    // {
-    //   file: `${pkg.module}.js`,
-    //   format: 'es',
-    // },
-  ],
-  // external: [
-  //   'rxjs',
-  //   'rxjs/operators',
-  // ],
+  output: [],
+  external: [],
   watch: {
     include: 'src/**',
   },
@@ -63,3 +44,5 @@ module.exports = {
     sourceMaps(),
   ]
 };
+
+export default config;

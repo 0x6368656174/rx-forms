@@ -1,5 +1,5 @@
 Arguments: 
-  /usr/bin/node /home/pashok/.npm-global/bin/yarn add -D ts-mixin
+  /usr/bin/node /home/pashok/.npm-global/bin/yarn add -D ulify-js
 
 PATH: 
   /home/pashok/bin/google-cloud-sdk/bin:/home/pashok/bin:/home/pashok/.npm-global/bin:/usr/local/bin:/usr/x86_64-pc-linux-gnu/gcc-bin/7.3.0:/usr/lib/llvm/6/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin:/home/pashok/.composer/vendor/bin
@@ -14,7 +14,7 @@ Platform:
   linux x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/ts-mixin: Not found
+  Error: https://registry.yarnpkg.com/ulify-js: Not found
       at Request.params.callback [as _callback] (/home/pashok/.npm-global/lib/node_modules/yarn/lib/cli.js:65894:18)
       at Request.self.callback (/home/pashok/.npm-global/lib/node_modules/yarn/lib/cli.js:129018:22)
       at emitTwo (events.js:126:13)
@@ -31,7 +31,7 @@ npm manifest:
     "name": "@it-quasar/rx-forms",
     "version": "1.0.0",
     "description": "Native RxJs forms",
-    "main": "dist/rx-forms.cjs.js",
+    "main": "dist/rx-forms.iife.js",
     "module": "dist/rx-forms.es5.js",
     "typings": "dist/types/rx-forms.d.ts",
     "repository": "https://github.com/it-quasar/reactive-forms.git",
@@ -40,7 +40,9 @@ npm manifest:
     "devDependencies": {
       "@types/json5": "^0.0.30",
       "@types/lodash": "^4.14.119",
+      "@types/luxon": "^1.4.1",
       "husky": "^1.3.0",
+      "json5": "^2.1.0",
       "lint-staged": "^8.1.0",
       "lodash": "^4.17.11",
       "prettier": "^1.15.3",
@@ -61,7 +63,7 @@ npm manifest:
       }
     },
     "dependencies": {
-      "json5": "^2.1.0",
+      "luxon": "^1.8.3",
       "rxjs": "^6.3.3"
     }
   }
@@ -109,6 +111,11 @@ Lockfile:
     version "4.14.119"
     resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.119.tgz#be847e5f4bc3e35e46d041c394ead8b603ad8b39"
     integrity sha512-Z3TNyBL8Vd/M9D9Ms2S3LmFq2sSMzahodD6rCS9V2N44HUMINb75jNkSuwAx7eo2ufqTdfOdtGQpNbieUjPQmw==
+  
+  "@types/luxon@^1.4.1":
+    version "1.4.1"
+    resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-1.4.1.tgz#ece499ada215fb253e07c7ac05d30731412ba6aa"
+    integrity sha512-mYv/gbkOJ40CDgR8st5sosfFNrJncdlkpdzQSNRdU86UQg3oWWmll4AO/7B8F5FlBC6YrIXqXDSnkoCBqo+uMA==
   
   "@types/node@*":
     version "10.12.18"
@@ -1317,6 +1324,11 @@ Lockfile:
       ansi-escapes "^3.0.0"
       cli-cursor "^2.0.0"
       wrap-ansi "^3.0.1"
+  
+  luxon@^1.8.3:
+    version "1.8.3"
+    resolved "https://registry.yarnpkg.com/luxon/-/luxon-1.8.3.tgz#6c76b50319b3a91a357002ca2e96576bb3bfe26d"
+    integrity sha512-hICQcGmUl5e9VUnf5PtHAma+tpiwL/wMBV9/6/M/6iSpzWFHdEElK2Rj4IZx8kbk2/baJvYftgb+n/I2wJ7RXQ==
   
   magic-string@^0.25.1:
     version "0.25.1"

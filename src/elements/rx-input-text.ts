@@ -1,5 +1,8 @@
 import { parse } from 'json5';
-import { endsWith, isEqual, isString, startsWith } from 'lodash';
+import endsWith from 'lodash-es/endsWith';
+import isEqual from 'lodash-es/isEqual';
+import isString from 'lodash-es/isString';
+import startsWith from 'lodash-es/startsWith';
 import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';
 import { createTextMaskInputElement } from 'text-mask-core';

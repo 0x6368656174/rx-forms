@@ -1,4 +1,5 @@
-import { flatMap, isEqual } from 'lodash';
+import flatMap from 'lodash-es/flatMap';
+import isEqual from 'lodash-es/isEqual';
 import { DateTime } from 'luxon';
 import { BehaviorSubject, combineLatest, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operators';

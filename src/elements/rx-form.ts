@@ -1,4 +1,5 @@
-import { isEqual, values } from 'lodash';
+import isEqual from 'lodash-es/isEqual';
+import values from 'lodash-es/values';
 import { BehaviorSubject, combineLatest, merge, Observable, of, Subject } from 'rxjs';
 import {
   distinctUntilChanged,

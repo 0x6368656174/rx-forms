@@ -1,4 +1,4 @@
-import { isEqual } from 'lodash';
+import isEqual from 'lodash-es/isEqual';
 import { BehaviorSubject, fromEvent, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, shareReplay, takeUntil } from 'rxjs/operators';
 import {
