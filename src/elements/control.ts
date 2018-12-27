@@ -2,8 +2,9 @@ import { isEqual } from 'lodash';
 import { BehaviorSubject, combineLatest, Observable, of, Subject } from 'rxjs';
 import { distinctUntilChanged, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 import { Validators as ValidatorsName } from '../validators';
+import { RxForm } from './rx-form';
 import { RxFormField } from './rx-form-field';
-import { updateAttribute } from './utils';
+import { findParentForm, findParentFormField, updateAttribute } from './utils';
 
 export type ValidatorsMap = Map<string, Observable<boolean>>;
 export type ValidatorsBehaviourSubject = BehaviorSubject<ValidatorsMap>;
@@ -200,6 +201,26 @@ export function throwAttributeNameRequired(tagName: string): Error {
   return new Error(`Attribute "${ControlAttributes.Name}" for <${tagName}> is required`);
 }
 
+interface ControlDomPrivate<T> {
+  parentFormField: RxFormField<T> | null;
+  parentForm: RxForm;
+}
+
+const domPrivateData: WeakMap<Control<any>, ControlDomPrivate<any>> = new WeakMap();
+
+function createDomPrivate<T>(instance: Control<T>, data: ControlDomPrivate<T>): void {
+  domPrivateData.set(instance, data);
+}
+
+function getDomPrivate<T>(instance: Control<T>): ControlDomPrivate<T> {
+  const data = domPrivateData.get(instance);
+  if (data === undefined) {
+    throw new Error('Something wrong =(');
+  }
+
+  return data;
+}
+
 /**
  * Базовая функция, вызываемая при добавлении элемента в DOM
  *
@@ -207,17 +228,30 @@ export function throwAttributeNameRequired(tagName: string): Error {
  * @param tagName Тэг элемента
  */
 export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, tagName: string): void {
-  findParentFormField<T>(control, tagName).setControl(control);
+  const parentFormField = findParentFormField<T>(control);
+  const parentForm = findParentForm(control, tagName);
+  createDomPrivate(control, { parentFormField, parentForm });
+
+  if (parentFormField) {
+    parentFormField.setControl(control);
+  }
+
+  parentForm.addControl(control);
 }
 
 /**
  * Базовая функция, вызываемая при удалении элемента из DOM
  *
  * @param control Контрол
- * @param tagName Тэг элемента
  */
-export function controlDisconnectedCallback(control: HTMLElement, tagName: string): void {
-  findParentFormField(control, tagName).setControl(null);
+export function controlDisconnectedCallback<T>(control: HTMLElement & Control<T>): void {
+  const domData = getDomPrivate(control);
+
+  if (domData.parentFormField) {
+    domData.parentFormField.setControl(null);
+  }
+
+  domData.parentForm.removeControl(control);
 }
 
 /**
@@ -227,21 +261,6 @@ export function controlDisconnectedCallback(control: HTMLElement, tagName: strin
  */
 export function unsubscribeFromObservables(withDisconnected: WithDisconnected): void {
   withDisconnected.disconnected$.next();
-}
-
-/**
- * Находит родительский <rx-form-field> для элемента
- *
- * @param element Элемент
- * @param tagName Тэг элемента
- */
-export function findParentFormField<T>(element: HTMLElement, tagName: string): RxFormField<T> {
-  const parentFormFiled = element.closest(RxFormField.tagName);
-  if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
-    throw new Error(`<${tagName}> must be child of <${RxFormField.tagName}>`);
-  }
-
-  return parentFormFiled;
 }
 
 interface ControlAttributesBehaviorSubjects {
@@ -486,23 +505,45 @@ export interface Control<T> extends ControlObservables<T> {
    */
   removeValidator(validator: string): void;
 
-  /**
-   * Помечает контрол как контрол, который принимал и терял фокус
-   */
+  /** Помечает контрол как контрол, который принимал и терял фокус */
   markAsTouched(): void;
 
-  /**
-   * Помечает контрол как контрол, который НЕ принимал и терял фокус
-   */
+  /** Помечает контрол как контрол, который НЕ принимал и терял фокус */
   markAsUnTouched(): void;
 
-  /**
-   * Помечает контрол как "грязный", т.е. как контрол значение которого менялось програмно
-   */
+  /** Помечает контрол как "грязный", т.е. как контрол значение которого менялось програмно */
   markAsDirty(): void;
 
-  /**
-   * Помечает контрол как "чистый", т.е. как контрол значение которого не менялось програмно
-   */
+  /** Помечает контрол как "чистый", т.е. как контрол значение которого НЕ менялось програмно */
   markAsPristine(): void;
+
+  /** Возвращает имя */
+  getName(): string;
+
+  /** Возвращает значение */
+  getValue(): T;
+
+  /** Возвращает признак того, что контрол обязателен для заполнения */
+  isRequired(): boolean;
+
+  /** Возвращает признак того, что контрол доступен только для чтения */
+  isReadonly(): boolean;
+
+  /** Возвращает признак того, что контрол доступен для редактирования */
+  isEnabled(): boolean;
+
+  /** Возвращает признак того, что контрол НЕ доступен для редактирования */
+  isDisabled(): boolean;
+
+  /** Возвращает признак того, что контрол принимал и терял фокус */
+  isTouched(): boolean;
+
+  /** Возвращает признак того, что контрол НЕ принимал и терял фокус */
+  isUnTouched(): boolean;
+
+  /** Возвращает признак того, что контрол "грязный", т.е. его значения менялось програмно */
+  isDirty(): boolean;
+
+  /** Возвращает признак того, что контрол "чистый", т.е. его значения НЕ менялось програмно */
+  isPristine(): boolean;
 }

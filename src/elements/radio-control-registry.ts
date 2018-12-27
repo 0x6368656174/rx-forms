@@ -1,65 +1,83 @@
-import { findParentFormField } from './control';
 import { emitDisconnected, RadioControl } from './radio-control';
-import { RxFormField } from './rx-form-field';
+import { RxForm } from './rx-form';
 import { RxInputRadio } from './rx-input-radio';
+import { findParentForm } from './utils';
 
-// Контролы по полям
-const controls: WeakMap<RxFormField<string | null>, RadioControl> = new WeakMap();
-// Инпуты к полям
-const inputsToFormFields: WeakMap<RxInputRadio, RxFormField<string | null>> = new WeakMap();
-// Количество контролов в поле
-const inputsCount: WeakMap<RxFormField<string | null>, number> = new WeakMap();
+// Контролы по формам
+const controls: WeakMap<RxForm, Map<string, RadioControl>> = new WeakMap();
+// Инпуты к формам
+const inputsToForm: WeakMap<RxInputRadio, RxForm> = new WeakMap();
+// // Количество контролов в контроле
+const inputsCount: WeakMap<RadioControl, number> = new WeakMap();
 
 export class RadioControlRegistry {
   add(input: RxInputRadio, control: RadioControl): RadioControl {
-    const formField = findParentFormField<string | null>(input, RxInputRadio.tagName);
+    const form = findParentForm(input, RxInputRadio.tagName);
 
-    const existControl = controls.get(formField);
+    let formControls = controls.get(form);
+    if (formControls === undefined) {
+      formControls = new Map();
+      controls.set(form, formControls);
+    }
+
+    const existControl = formControls.get(control.getName());
     if (existControl !== undefined) {
       // Контрол уже создан
       control = existControl;
     } else {
-      controls.set(formField, control);
+      formControls.set(control.getName(), control);
     }
 
-    // Добавим один инпут к общему количеству
-    inputsCount.set(formField, (inputsCount.get(formField) || 0) + 1);
+    // // Добавим один инпут к общему количеству
+    inputsCount.set(control, (inputsCount.get(control) || 0) + 1);
     // Добавим связь инпут-поле
-    inputsToFormFields.set(input, formField);
+    inputsToForm.set(input, form);
 
-    formField.setControl(control);
+    form.addControl(control);
+
     return control;
   }
 
   remove(input: RxInputRadio): void {
-    const formField = inputsToFormFields.get(input);
-    if (formField === undefined) {
-      throw new Error('Not found parent form field for input');
+    const name = input.getName();
+
+    const form = inputsToForm.get(input);
+    if (form === undefined) {
+      throw new Error('Not found parent form for input');
     }
 
     // Удалим один инпут из общего количества
-    inputsCount.set(formField, (inputsCount.get(formField) || 0) - 1);
+    inputsCount.set(input, (inputsCount.get(input) || 0) - 1);
     // Удалим связь инпут-поле
-    inputsToFormFields.delete(input);
+    inputsToForm.delete(input);
 
-    const formFieldInputCount = inputsCount.get(formField);
-    if (formFieldInputCount === undefined || formFieldInputCount < 0) {
+    const formInputCount = inputsCount.get(input);
+    if (formInputCount === undefined || formInputCount < 0) {
       throw new Error('Form field inputs count undefined or < 0');
     }
 
     // Если не осталось больше инпутов в данном поле
-    if (formFieldInputCount === 0) {
-      formField.setControl(null);
+    if (formInputCount === 0) {
+      form.removeControl(input);
 
-      const control = controls.get(formField);
+      const formControls = controls.get(form);
+      if (formControls === undefined) {
+        throw new Error('Something wrong=(');
+      }
+
+      const control = formControls.get(name);
       if (!control) {
         throw new Error('Control for form field not found');
       }
       // Вызовем событие отключение контрола
       emitDisconnected(control);
 
-      controls.delete(formField);
-      inputsCount.delete(formField);
+      formControls.delete(name);
+      if (formControls.size === 0) {
+        controls.delete(form);
+      }
+
+      inputsCount.delete(control);
     }
   }
 }

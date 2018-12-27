@@ -10,6 +10,8 @@ import {
 } from './control';
 import { RadioControl } from './radio-control';
 import { RadioControlRegistry } from './radio-control-registry';
+import { RxFormField } from './rx-form-field';
+import { findParentFormField } from './utils';
 
 function subscribeToValueChanges(control: RxInputRadio): void {
   fromEvent(control, 'change')
@@ -30,6 +32,7 @@ function subscribeToValueChanges(control: RxInputRadio): void {
 interface RxInputRadioPrivate {
   control$: BehaviorSubject<RadioControl>;
   disconnected$: Subject<void>;
+  parentFormField: RxFormField<string | null> | null;
 }
 
 const privateData: WeakMap<RxInputRadio, RxInputRadioPrivate> = new WeakMap();
@@ -38,6 +41,7 @@ function createPrivate(instance: RxInputRadio): RxInputRadioPrivate {
   const data = {
     control$: new BehaviorSubject<RadioControl>(new RadioControl()),
     disconnected$: new Subject<void>(),
+    parentFormField: null,
   };
 
   privateData.set(instance, data);
@@ -167,6 +171,46 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
     getControl(this).setDisabled(disabled);
   }
 
+  getName(): string {
+    return getControl(this).getName();
+  }
+
+  getValue(): string | null {
+    return getControl(this).getValue();
+  }
+
+  isRequired(): boolean {
+    return getControl(this).isRequired();
+  }
+
+  isReadonly(): boolean {
+    return getControl(this).isReadonly();
+  }
+
+  isEnabled(): boolean {
+    return getControl(this).isEnabled();
+  }
+
+  isDisabled(): boolean {
+    return getControl(this).isDisabled();
+  }
+
+  isTouched(): boolean {
+    return getControl(this).isTouched();
+  }
+
+  isUnTouched(): boolean {
+    return getControl(this).isUnTouched();
+  }
+
+  isDirty(): boolean {
+    return getControl(this).isDirty();
+  }
+
+  isPristine(): boolean {
+    return getControl(this).isPristine();
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
@@ -190,6 +234,16 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
       data.control$.next(newControl);
     }
 
+    if (this.checked) {
+      console.log(this.checked);
+      newControl.setValue(this.value);
+    }
+
+    data.parentFormField = findParentFormField<string | null>(this);
+    if (data.parentFormField) {
+      data.parentFormField.setControl(newControl);
+    }
+
     subscribeToControlObservables(this, this, RxInputRadio.tagName);
     subscribeToObservables(this);
   }
@@ -206,6 +260,10 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
 
     // Отпишемся
     data.disconnected$.next();
+
+    if (data.parentFormField) {
+      data.parentFormField.setControl(null);
+    }
 
     unsubscribeFromObservables(data);
   }

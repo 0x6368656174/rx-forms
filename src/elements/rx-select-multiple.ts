@@ -142,7 +142,11 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
+    this.rxValue = observables.rxValue.pipe(
+      map(value => [...value]),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -210,6 +214,46 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
     getPrivate(this).disabled$.next(disabled);
   }
 
+  getName(): string {
+    return getPrivate(this).name$.getValue();
+  }
+
+  getValue(): string[] {
+    return getPrivate(this).value$.getValue();
+  }
+
+  isRequired(): boolean {
+    return getPrivate(this).required$.getValue();
+  }
+
+  isReadonly(): boolean {
+    return getPrivate(this).readonly$.getValue();
+  }
+
+  isEnabled(): boolean {
+    return !getPrivate(this).disabled$.getValue();
+  }
+
+  isDisabled(): boolean {
+    return getPrivate(this).disabled$.getValue();
+  }
+
+  isTouched(): boolean {
+    return !getPrivate(this).untouched$.getValue();
+  }
+
+  isUnTouched(): boolean {
+    return getPrivate(this).untouched$.getValue();
+  }
+
+  isDirty(): boolean {
+    return !getPrivate(this).pristine$.getValue();
+  }
+
+  isPristine(): boolean {
+    return getPrivate(this).pristine$.getValue();
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
@@ -238,7 +282,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxSelectMultiple.tagName);
+    controlDisconnectedCallback(this);
 
     unsubscribeFromObservables(getPrivate(this));
   }

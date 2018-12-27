@@ -250,6 +250,46 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     getPrivate(this).disabled$.next(disabled);
   }
 
+  getName(): string {
+    return getPrivate(this).name$.getValue();
+  }
+
+  getValue(): string {
+    return getPrivate(this).value$.getValue();
+  }
+
+  isRequired(): boolean {
+    return getPrivate(this).required$.getValue();
+  }
+
+  isReadonly(): boolean {
+    return getPrivate(this).readonly$.getValue();
+  }
+
+  isEnabled(): boolean {
+    return !getPrivate(this).disabled$.getValue();
+  }
+
+  isDisabled(): boolean {
+    return getPrivate(this).disabled$.getValue();
+  }
+
+  isTouched(): boolean {
+    return !getPrivate(this).untouched$.getValue();
+  }
+
+  isUnTouched(): boolean {
+    return getPrivate(this).untouched$.getValue();
+  }
+
+  isDirty(): boolean {
+    return !getPrivate(this).pristine$.getValue();
+  }
+
+  isPristine(): boolean {
+    return getPrivate(this).pristine$.getValue();
+  }
+
   /**
    * Устанавливает максимальную длину
    *
@@ -308,7 +348,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
   /** @internal */
   disconnectedCallback() {
-    controlDisconnectedCallback(this, RxTextarea.tagName);
+    controlDisconnectedCallback(this);
 
     unsubscribeFromObservables(getPrivate(this));
   }

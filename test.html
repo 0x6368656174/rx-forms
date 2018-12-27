@@ -35,191 +35,212 @@
 </head>
 
 <body>
-<div>
-    <rx-form-field>
-        <label>
-            Телефон
+<form is="rx-form" novalidate>
+    <div>
+        <rx-form-field>
+            <label>
+                Телефон
 
-            <input is="rx-input-text"
-                name="phone"
-                required
-                pattern="\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}"
-                mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']"
-                value="+7 (914) 419-17-09"
-            >
-        </label>
+                <input is="rx-input-text"
+                       name="phone"
+                       required
+                       pattern="\+7 \([1-9]\d{2}\) \d{3}-\d{2}-\d{2}"
+                       mask="['+', '7', ' ', '(', '/[1-9]/', '/\d/', '/\d/', ')', ' ', '/\d/', '/\d/', '/\d/', '-', '/\d/', '/\d/', '-', '/\d/', '/\d/']"
+                       value="+7 (914) 419-17-09"
+                >
+            </label>
 
-        <rx-success>Телефон введен</rx-success>
-        <rx-error validator="required">Заполните данное поле</rx-error>
-        <rx-error validator="pattern">Введите верный номер телефона</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Телефон введен</rx-success>
+            <rx-error validator="required">Заполните данное поле</rx-error>
+            <rx-error validator="pattern">Введите верный номер телефона</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Текст
+    <div>
+        <rx-form-field>
+            <label>
+                Текст
 
-            <textarea is="rx-textarea"
-                name="text"
-                      required
-                      minlength="12"
-                      maxlength="16"
-            >Это текст</textarea>
-        </label>
+                <textarea is="rx-textarea"
+                          name="text"
+                          required
+                          minlength="12"
+                          maxlength="16"
+                >Это текст больш</textarea>
+            </label>
 
-        <rx-success>Текст введен</rx-success>
-        <rx-error validator="required">Заполните данное поле</rx-error>
-        <rx-error validator="minlength">Поле должно в длину больше 12 символов</rx-error>
-        <rx-error validator="maxlength">Поле должно в длину меньше 16 символов</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Текст введен</rx-success>
+            <rx-error validator="required">Заполните данное поле</rx-error>
+            <rx-error validator="minlength">Поле должно в длину больше 12 символов</rx-error>
+            <rx-error validator="maxlength">Поле должно в длину меньше 16 символов</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Дата
+    <div>
+        <rx-form-field>
+            <label>
+                Дата
 
-            <input is="rx-input-date-time"
-                   name="date"
-                   required
-                   value="16.10.1988, 03:21"
-                   format="dd.MM.yyyy, HH:mm"
-                   locale="ru"
-                   min="15.10.1988, 00:00"
-                   max="17.10.1988, 00:00"
-            >
-        </label>
+                <input is="rx-input-date-time"
+                       name="date"
+                       required
+                       value="16.10.1988, 03:21"
+                       format="dd.MM.yyyy, HH:mm"
+                       locale="ru"
+                       min="15.10.1988, 00:00"
+                       max="17.10.1988, 00:00"
+                >
+            </label>
 
-        <rx-success>Дата введена</rx-success>
-        <rx-error validator="required">Заполните данное поле</rx-error>
-        <rx-error validator="format">Введите верную дату</rx-error>
-        <rx-error validator="min">Введите большую дату</rx-error>
-        <rx-error validator="max">Введите меньшую дату</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Дата введена</rx-success>
+            <rx-error validator="required">Заполните данное поле</rx-error>
+            <rx-error validator="format">Введите верную дату</rx-error>
+            <rx-error validator="min">Введите большую дату</rx-error>
+            <rx-error validator="max">Введите меньшую дату</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Число
+    <div>
+        <rx-form-field>
+            <label>
+                Число
 
-            <input is="rx-input-number"
-                   name="number"
-                   required
-                   min="-2.1"
-                   max="3.2"
-            >
-        </label>
+                <input is="rx-input-number"
+                       name="number"
+                       required
+                       value="2"
+                       min="-2.1"
+                       max="3.2"
+                >
+            </label>
 
-        <rx-success>Число введено</rx-success>
-        <rx-error validator="required">Заполните данное поле</rx-error>
-        <rx-error validator="format">Введите верное число</rx-error>
-        <rx-error validator="min">Введите большее число</rx-error>
-        <rx-error validator="max">Введите меньшее число</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Число введено</rx-success>
+            <rx-error validator="required">Заполните данное поле</rx-error>
+            <rx-error validator="format">Введите верное число</rx-error>
+            <rx-error validator="min">Введите большее число</rx-error>
+            <rx-error validator="max">Введите меньшее число</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Число
+    <div>
+        <rx-form-field>
+            <label>
+                Число
 
-            <input is="rx-input-range"
-                   type="range"
-                   name="range"
-                   required
-                   min="-20"
-                   max="20"
-            >
-        </label>
+                <input is="rx-input-range"
+                       type="range"
+                       name="range"
+                       required
+                       min="-20"
+                       max="20"
+                >
+            </label>
 
-        <rx-success>Число введено</rx-success>
-        <rx-error validator="required">Заполните данное поле</rx-error>
-        <rx-error validator="format">Введите верное число</rx-error>
-        <rx-error validator="min">Введите большее число</rx-error>
-        <rx-error validator="max">Введите меньшее число</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Число введено</rx-success>
+            <rx-error validator="required">Заполните данное поле</rx-error>
+            <rx-error validator="format">Введите верное число</rx-error>
+            <rx-error validator="min">Введите большее число</rx-error>
+            <rx-error validator="max">Введите меньшее число</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Чекбокс
+    <div>
+        <rx-form-field>
+            <label>
+                Чекбокс
 
-            <input is="rx-input-checkbox"
-                   type="checkbox"
-                   name="checkbox"
-                   required
-            >
-        </label>
+                <input is="rx-input-checkbox"
+                       type="checkbox"
+                       name="checkbox"
+                       checked
+                       required
+                >
+            </label>
 
-        <rx-success>Чекбокс выбран</rx-success>
-        <rx-error validator="required">Выберите чекбокс</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Чекбокс выбран</rx-success>
+            <rx-error validator="required">Выберите чекбокс</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Селект
+    <div>
+        <rx-form-field>
+            <label>
+                Селект
 
-            <select is="rx-select"
-                   name="select"
-                   required
-            >
-                <option value> -- Выберите опцию -- </option>
-                <option value="option-1">Опция 1</option>
-                <option value="option-2">Опция 2</option>
-            </select>
-        </label>
+                <select is="rx-select"
+                        name="select"
+                        required
+                >
+                    <option value> -- Выберите опцию -- </option>
+                    <option value="option-1" selected>Опция 1</option>
+                    <option value="option-2">Опция 2</option>
+                </select>
+            </label>
 
-        <rx-success>Селект выбран</rx-success>
-        <rx-error validator="required">Выберите селект</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Селект выбран</rx-success>
+            <rx-error validator="required">Выберите селект</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    <rx-form-field>
-        <label>
-            Мультипл Селект
+    <div>
+        <rx-form-field>
+            <label>
+                Мультипл Селект
 
-            <select is="rx-select-multiple"
-                    name="select-multiple[]"
-                    multiple
-                    required
-            >
-                <option value="option-1">Опция 1</option>
-                <option value="option-2">Опция 2</option>
-                <option value="option-3">Опция 3</option>
-                <option value="option-4">Опция 4</option>
-            </select>
-        </label>
+                <select is="rx-select-multiple"
+                        name="select-multiple[]"
+                        multiple
+                        required
+                >
+                    <option value="option-1">Опция 1</option>
+                    <option value="option-2" selected>Опция 2</option>
+                    <option value="option-3" selected>Опция 3</option>
+                    <option value="option-4">Опция 4</option>
+                </select>
+            </label>
 
-        <rx-success>Селект выбран</rx-success>
-        <rx-error validator="required">Выберите селект</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Селект выбран</rx-success>
+            <rx-error validator="required">Выберите селект</rx-error>
+        </rx-form-field>
+    </div>
 
-<div>
-    Радио
-    <rx-form-field>
-        <label>
-            <input is="rx-input-radio" type="radio" name="radio" value="value-1" required>
+    <div>
+        Радио
+        <rx-form-field>
+            <label>
+                <input is="rx-input-radio" type="radio" name="radio" value="value-1" required checked>
 
-            Радио 1
-        </label>
+                Радио 1
+            </label>
 
-        <label>
-            <input is="rx-input-radio" type="radio" name="radio" value="value-2" readonly>
+            <label>
+                <input is="rx-input-radio" type="radio" name="radio" value="value-2" readonly>
 
-            Радио 2
-        </label>
+                Радио 2
+            </label>
 
-        <rx-success>Радио выбран</rx-success>
-        <rx-error validator="required">Выберите радио</rx-error>
-    </rx-form-field>
-</div>
+            <rx-success>Радио выбран</rx-success>
+            <rx-error validator="required">Выберите радио</rx-error>
+        </rx-form-field>
+    </div>
+
+    <div>
+        Радио 2
+            <label>
+                <input is="rx-input-radio" type="radio" name="radio-2" value="value-1" required>
+
+                Радио 1
+            </label>
+
+            <label>
+                <input is="rx-input-radio" type="radio" name="radio-2" value="value-2" readonly checked>
+
+                Радио 2
+            </label>
+    </div>
+
+    <button is="rx-submit" type="button">Отправить</button>
+</form>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
@@ -271,6 +292,11 @@
 
     document.querySelector('input[name="range"]').rxValue.subscribe(v => console.log(`Range value: ${v}`));
     document.querySelector('input[name="range"]').rxValid.subscribe(v => console.log(`Range valid: ${v}`));
+
+    document.querySelector('form').rxValue.subscribe(v => console.log(`FORM value:`, v));
+    document.querySelector('form').rxValid.subscribe(v => console.log(`FORM valid: ${v}`));
+    document.querySelector('form').rxValidationErrors.subscribe(v => console.log(`FORM errors:`, v));
+    document.querySelector('form').rxSubmit.subscribe(v => console.log(`FORM submit:`, v));
 </script>
 </body>
 </html>

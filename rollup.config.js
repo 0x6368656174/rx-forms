@@ -44,6 +44,7 @@ module.exports = {
           'isString',
           'isEqual',
           'flatMap',
+          'values',
         ],
         'node_modules/json5/lib/index.js': [
           'parse',
