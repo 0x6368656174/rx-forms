@@ -203,7 +203,7 @@ export function throwAttributeNameRequired(tagName: string): Error {
 
 interface ControlDomPrivate<T> {
   parentFormField: RxFormField<T> | null;
-  parentForm: RxForm;
+  parentForm: RxForm | null;
 }
 
 const domPrivateData: WeakMap<Control<any>, ControlDomPrivate<any>> = new WeakMap();
@@ -225,18 +225,19 @@ function getDomPrivate<T>(instance: Control<T>): ControlDomPrivate<T> {
  * Базовая функция, вызываемая при добавлении элемента в DOM
  *
  * @param control Контрол
- * @param tagName Тэг элемента
  */
-export function controlConnectedCallback<T>(control: HTMLElement & Control<T>, tagName: string): void {
+export function controlConnectedCallback<T>(control: HTMLElement & Control<T>): void {
   const parentFormField = findParentFormField<T>(control);
-  const parentForm = findParentForm(control, tagName);
+  const parentForm = findParentForm(control);
   createDomPrivate(control, { parentFormField, parentForm });
 
   if (parentFormField) {
     parentFormField.setControl(control);
   }
 
-  parentForm.addControl(control);
+  if (parentForm) {
+    parentForm.addControl(control);
+  }
 }
 
 /**
@@ -251,7 +252,12 @@ export function controlDisconnectedCallback<T>(control: HTMLElement & Control<T>
     domData.parentFormField.setControl(null);
   }
 
-  domData.parentForm.removeControl(control);
+  if (domData.parentForm) {
+    domData.parentForm.removeControl(control);
+  }
+
+  domData.parentFormField = null;
+  domData.parentForm = null;
 }
 
 /**

@@ -5,7 +5,7 @@ import { RxForm } from './rx-form';
 import { findParentForm } from './utils';
 
 interface RxSubmitDomPrivate {
-  parentForm: RxForm;
+  parentForm: RxForm | null;
 }
 
 const domPrivateData: WeakMap<RxSubmit, RxSubmitDomPrivate> = new WeakMap();
@@ -38,17 +38,23 @@ export class RxSubmit extends HTMLButtonElement {
 
   /** @internal */
   connectedCallback() {
-    const parentForm = findParentForm(this, RxSubmit.tagName);
+    const parentForm = findParentForm(this);
     createDomPrivate(this, { parentForm });
 
-    parentForm.addSubmitButton(this);
+    if (parentForm) {
+      parentForm.addSubmitButton(this);
+    }
   }
 
   /** @internal */
   disconnectedCallback() {
     const domData = getDomPrivate(this);
 
-    domData.parentForm.removeSubmitButton(this);
+    if (domData.parentForm) {
+      domData.parentForm.removeSubmitButton(this);
+    }
+
+    domData.parentForm = null;
   }
 }
 

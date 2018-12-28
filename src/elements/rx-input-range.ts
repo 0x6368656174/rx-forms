@@ -340,7 +340,7 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxInputRange.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputRange.tagName);
     subscribeToObservables(this);

@@ -481,7 +481,7 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxInputText.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputText.tagName);
     subscribeToObservables(this);

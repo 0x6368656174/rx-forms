@@ -341,7 +341,7 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxTextarea.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxTextarea.tagName);
     subscribeToObservables(this);

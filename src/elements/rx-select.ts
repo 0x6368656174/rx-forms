@@ -250,7 +250,7 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxSelect.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxSelect.tagName);
     subscribeToObservables(this);

@@ -4,16 +4,7 @@ import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil } 
 import { Control } from './control';
 import { CustomElement } from './custom-element';
 import { Elements } from './elements';
-import { RxFormField } from './rx-form-field';
-
-function findParentFormField(this: RxSuccess): RxFormField<any> {
-  const parentFormFiled = this.closest(RxFormField.tagName);
-  if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
-    throw new Error(`<${RxSuccess.tagName}> must be child of <${RxFormField.tagName}>`);
-  }
-
-  return parentFormFiled;
-}
+import { findParentFormField } from './utils';
 
 interface RxSuccessPrivate {
   readonly disconnected$: Subject<void>;
@@ -60,30 +51,33 @@ export class RxSuccess extends HTMLElement implements CustomElement {
 
   /** @internal */
   connectedCallback() {
-    findParentFormField
-      .call(this)
-      .rxControl.pipe(
-        filter((control): control is Control<any> => !!control),
-        switchMap(control => combineLatest(control.rxValid, control.rxDirty, control.rxTouched)),
-        map(([valid, dirty, touched]) => {
-          // Если контрол не меняли, то успех валидации отображена не должен
-          if (!dirty && !touched) {
-            return false;
-          }
+    const parentFormField = findParentFormField(this);
 
-          return valid;
-        }),
-        takeUntil(this.rxDisconnected),
-      )
-      .subscribe(visible => {
-        if (visible) {
-          this.classList.add(`${RxSuccess.tagName}--visible`);
-          this.classList.remove(`${RxSuccess.tagName}--hidden`);
-        } else {
-          this.classList.remove(`${RxSuccess.tagName}--visible`);
-          this.classList.add(`${RxSuccess.tagName}--hidden`);
-        }
-      });
+    if (parentFormField) {
+      parentFormField.rxControl
+        .pipe(
+          filter((control): control is Control<any> => !!control),
+          switchMap(control => combineLatest(control.rxValid, control.rxDirty, control.rxTouched)),
+          map(([valid, dirty, touched]) => {
+            // Если контрол не меняли, то успех валидации отображена не должен
+            if (!dirty && !touched) {
+              return false;
+            }
+
+            return valid;
+          }),
+          takeUntil(this.rxDisconnected),
+        )
+        .subscribe(visible => {
+          if (visible) {
+            this.classList.add(`${RxSuccess.tagName}--visible`);
+            this.classList.remove(`${RxSuccess.tagName}--hidden`);
+          } else {
+            this.classList.remove(`${RxSuccess.tagName}--visible`);
+            this.classList.add(`${RxSuccess.tagName}--hidden`);
+          }
+        });
+    }
   }
 
   /** @internal */

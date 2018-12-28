@@ -275,7 +275,7 @@ export class RxSelectMultiple extends HTMLSelectElement implements Control<strin
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxSelectMultiple.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxSelectMultiple.tagName);
     subscribeToObservables(this);

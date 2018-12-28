@@ -265,6 +265,7 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
     if (data.parentFormField) {
       data.parentFormField.setControl(null);
     }
+    data.parentFormField = null;
 
     unsubscribeFromObservables(data);
   }

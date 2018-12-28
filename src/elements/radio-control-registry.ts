@@ -1,20 +1,38 @@
-import { Elements } from './elements';
 import { emitDisconnected, RadioControl } from './radio-control';
 import { RxForm } from './rx-form';
 import { RxInputRadio } from './rx-input-radio';
-import { findParentForm } from './utils';
+
+/**
+ * Находит родительский <rx-form> для элемента
+ *
+ * @param element Элемент
+ */
+export function findParentForm(element: HTMLElement): HTMLFormElement | null {
+  const parentForm = element.closest(`form`);
+  if (!parentForm || !(parentForm instanceof HTMLFormElement)) {
+    return null;
+  }
+
+  return parentForm;
+}
 
 // Контролы по формам
-const controls: WeakMap<RxForm, Map<string, RadioControl>> = new WeakMap();
+const controls: WeakMap<HTMLFormElement | HTMLBodyElement, Map<string, RadioControl>> = new WeakMap();
 // Инпуты к формам
-const inputsToForm: WeakMap<RxInputRadio, RxForm> = new WeakMap();
+const inputsToForm: WeakMap<RxInputRadio, HTMLFormElement | HTMLBodyElement> = new WeakMap();
 // // Количество контролов в контроле
 const inputsCount: WeakMap<RadioControl, number> = new WeakMap();
 
 export class RadioControlRegistry {
   add(input: RxInputRadio, control: RadioControl): RadioControl {
     // Не используем тут RxInputRadio.tagName, т.к. это вызовет цикличную зависимость
-    const form = findParentForm(input, Elements.RxInputRadio);
+    let form: HTMLFormElement | HTMLBodyElement | null = findParentForm(input);
+    if (form === null) {
+      form = document.querySelector('body');
+      if (!form) {
+        throw new Error('Something wrong =(');
+      }
+    }
 
     let formControls = controls.get(form);
     if (formControls === undefined) {
@@ -35,7 +53,9 @@ export class RadioControlRegistry {
     // Добавим связь инпут-поле
     inputsToForm.set(input, form);
 
-    form.addControl(control);
+    if (form instanceof RxForm) {
+      form.addControl(control);
+    }
 
     return control;
   }
@@ -60,7 +80,9 @@ export class RadioControlRegistry {
 
     // Если не осталось больше инпутов в данном поле
     if (formInputCount === 0) {
-      form.removeControl(input);
+      if (form instanceof RxForm) {
+        form.removeControl(input);
+      }
 
       const formControls = controls.get(form);
       if (formControls === undefined) {

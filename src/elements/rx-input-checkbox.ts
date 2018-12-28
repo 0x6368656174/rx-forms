@@ -223,7 +223,7 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxInputCheckbox.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputCheckbox.tagName);
     subscribeToObservables(this);

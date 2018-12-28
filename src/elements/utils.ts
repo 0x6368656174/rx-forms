@@ -38,12 +38,11 @@ export function findParentFormField<T>(element: HTMLElement): RxFormField<T> | n
  * Находит родительский <rx-form> для элемента
  *
  * @param element Элемент
- * @param tagName Тэг элемента
  */
-export function findParentForm(element: HTMLElement, tagName: string): RxForm {
-  const parentForm = element.closest('form');
+export function findParentForm(element: HTMLElement): RxForm | null {
+  const parentForm = element.closest(`form[is="${RxForm.tagName}"]`);
   if (!parentForm || !(parentForm instanceof RxForm)) {
-    throw new Error(`<${tagName}> must be child of <${RxForm.tagName}>`);
+    return null;
   }
 
   return parentForm;

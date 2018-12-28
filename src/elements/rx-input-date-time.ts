@@ -627,7 +627,7 @@ export class RxInputDateTime extends HTMLInputElement implements Control<DateTim
 
   /** @internal */
   connectedCallback() {
-    controlConnectedCallback(this, RxInputDateTime.tagName);
+    controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputDateTime.tagName);
     subscribeToObservables(this);

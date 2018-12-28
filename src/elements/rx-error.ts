@@ -4,17 +4,7 @@ import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil, w
 import { Control } from './control';
 import { CustomElement } from './custom-element';
 import { Elements } from './elements';
-import { RxFormField } from './rx-form-field';
-import { updateAttribute } from './utils';
-
-function findParentFormField(this: RxError): RxFormField<any> {
-  const parentFormFiled = this.closest(RxFormField.tagName);
-  if (!parentFormFiled || !(parentFormFiled instanceof RxFormField)) {
-    throw new Error(`<${RxError.tagName}> must be child of <${RxFormField.tagName}>`);
-  }
-
-  return parentFormFiled;
-}
+import { findParentFormField, updateAttribute } from './utils';
 
 function subscribeToAttributeObservables(control: RxError): void {
   control.rxValidator.pipe(takeUntil(control.rxDisconnected)).subscribe(validator => {
@@ -121,31 +111,34 @@ export class RxError extends HTMLElement implements CustomElement {
 
   /** @internal */
   connectedCallback() {
-    findParentFormField
-      .call(this)
-      .rxControl.pipe(
-        filter((control): control is Control<any> => !!control),
-        switchMap(control => combineLatest(control.rxValidationErrors, control.rxDirty, control.rxTouched)),
-        withLatestFrom(getPrivate(this).validator$),
-        map(([[validationErrors, dirty, touched], validator]) => {
-          // Если контрол не меняли, то ошибка валидации отображена не должна
-          if (!dirty && !touched) {
-            return false;
-          }
+    const parentFormField = findParentFormField(this);
 
-          return validationErrors.indexOf(validator) !== -1;
-        }),
-        takeUntil(this.rxDisconnected),
-      )
-      .subscribe(visible => {
-        if (visible) {
-          this.classList.add(`${RxError.tagName}--visible`);
-          this.classList.remove(`${RxError.tagName}--hidden`);
-        } else {
-          this.classList.remove(`${RxError.tagName}--visible`);
-          this.classList.add(`${RxError.tagName}--hidden`);
-        }
-      });
+    if (parentFormField) {
+      parentFormField.rxControl
+        .pipe(
+          filter((control): control is Control<any> => !!control),
+          switchMap(control => combineLatest(control.rxValidationErrors, control.rxDirty, control.rxTouched)),
+          withLatestFrom(getPrivate(this).validator$),
+          map(([[validationErrors, dirty, touched], validator]) => {
+            // Если контрол не меняли, то ошибка валидации отображена не должна
+            if (!dirty && !touched) {
+              return false;
+            }
+
+            return validationErrors.indexOf(validator) !== -1;
+          }),
+          takeUntil(this.rxDisconnected),
+        )
+        .subscribe(visible => {
+          if (visible) {
+            this.classList.add(`${RxError.tagName}--visible`);
+            this.classList.remove(`${RxError.tagName}--hidden`);
+          } else {
+            this.classList.remove(`${RxError.tagName}--visible`);
+            this.classList.add(`${RxError.tagName}--hidden`);
+          }
+        });
+    }
 
     subscribeToObservables(this);
   }
