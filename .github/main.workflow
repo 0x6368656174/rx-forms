@@ -1,11 +1,11 @@
 workflow "Lint, Build and Publish" {
   on = "push"
   resolves = [
-    "Lint, Build and Publish"
+    "Run lint, build and publish"
   ]
 }
 
-action "Lint, Build and Publish" {
+action "Run lint, build and publish" {
   uses = "./.github/action-publish"
   secrets = ["GITHUB_TOKEN", "NPM_TOKEN"]
 }
