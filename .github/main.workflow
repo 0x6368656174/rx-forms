@@ -30,7 +30,6 @@ action "Master" {
 
 action "Publish" {
   needs = "Master"
-  uses = "actions/npm@master"
-  args = "run release"
+  uses = "./action-publish"
   secrets = ["GITHUB_TOKEN", "NPM_TOKEN"]
 }
