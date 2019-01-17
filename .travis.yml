@@ -10,7 +10,9 @@ script:
 - npm run lint
 before_deploy:
 - npx concurrently "npm:build-*"
+- ls dist
 - node .scripts/prepublish
+- ls dist
 deploy:
 - provider: script
   script: npx semantic-release
