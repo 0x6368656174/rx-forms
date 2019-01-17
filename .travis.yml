@@ -1,0 +1,23 @@
+language: node_js
+node_js:
+- 10
+cache:
+  directories:
+  - node_modules
+before_script:
+- npm install
+- npm install --no-save semantic-release @semantic-release/git @semantic-release/npm
+  @semantic-release/changelog fs-extra tar
+script:
+- npm runt lint
+before_deploy:
+- npm run build
+deploy:
+- provider: script
+  script: npx semantic-release
+  skip_cleanup: true
+  on:
+    branch: master
+env:
+  global:
+    secure: I1y8Tf2A8K7vjUPIXCK+UCD9h3PTKFx5va9ZhQVuNMDCuuGdJZey2QKYy3ZZ2S15bZ+fDT9KG6ZDC7wyzm/EB7jGUFDNF3z4HrYYYB7cOQyn85tVzkb3ph2i8y8JZKgGncawQHy+8GEuPD6kxtXM8rx5A+XdOMfGTUXuP3k8BBGV8DF0tOPeKOKHTQ2bqJRIICLR4Yz4aPd9io54tkwlhz58oiOj6T4+b56EvljKTgsDkk6Ob6t0qgJBKS63Jq3uRMLcuTO4DwxhRBzcEPp+hAdIhmJemsdg82Q6UdJqLEyZ7ABydAOPxmWw/QbHoe/mJnTnzZ+4RdV9dDxEIHt71z6yyVlu8gJGsqBBW2vMQF1cFI3wCu1nnvwAJiF3FeQuIiTndtA31iWqCvXP4TA8j/SwDGAGUbjf61kEr51OFIHqNbvJc1oJQNt2Ekx6wpfbottDLGVA7sOWP9+AS4Kt73v2zoZ3FPDv9fWNOLc3psr8ofubXfWWxYiFGpQAnkbaEfULrQkNQkf2bQw3DIYl4OHkSEaGrcbM/Bn54EFGBRTe7oRC6MwEa++b1dAdumCQYwN0whQUrsTXircqbCzicy3fkyHb3cNo2gd9J/LHFicn0lCWzY1V8fXUakNzbZ9vtqaxGHincMY6Xwm03PE4pw5gZ4vtpKrTcNY1lmn/b8A=
