@@ -1,3 +1,11 @@
+## [1.0.8](https://github.com/0x6368656174/rx-forms/compare/v1.0.7...v1.0.8) (2019-01-17)
+
+
+### Bug Fixes
+
+* fix ([5b41d15](https://github.com/0x6368656174/rx-forms/commit/5b41d15))
+* try ([fb8b469](https://github.com/0x6368656174/rx-forms/commit/fb8b469))
+
 ## [1.0.7](https://github.com/0x6368656174/rx-forms/compare/v1.0.6...v1.0.7) (2019-01-17)
 
 
