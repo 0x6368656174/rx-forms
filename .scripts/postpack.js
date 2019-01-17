@@ -5,7 +5,7 @@ const tar = require ("tar");
 // Read development version of package.json.
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', "package.json")).toString());
 
-const packageName = path.join(__dirname, '..', `it-quasar-rx-forms-${packageJson.version}.tgz`);
+const packageName = path.join(__dirname, '..', `it-quasar-rx-forms-v${packageJson.version}.tgz`);
 
 // Extract package made by `yarn pack`.
 tar.extract({
