@@ -4,14 +4,35 @@
   "description": "Native RxJs forms",
   "main": "dist/rx-forms.iife.js",
   "module": "dist/rx-forms.es6.js",
-  "typings": "dist/types/index.d.ts",
-  "repository": "https://github.com/it-quasar/reactive-forms.git",
+  "types": "dist/types/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0x6368656174/rx-forms.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0x6368656174/rx-forms/issues"
+  },
+  "homepage": "https://github.com/0x6368656174/rx-forms#readme",
   "author": "Pavel Puchkov <0x6368656174@gmail.com>",
   "license": "LGPL-3.0-only",
+  "keywords": [
+    "rxjs",
+    "form",
+    "validation",
+    "input",
+    "reactive",
+    "js",
+    "html"
+  ],
   "scripts": {
     "watch": "rollup -w --config rollup.config.iife.js",
-    "lint": "tslint src/**/*.ts"
+    "lint": "tslint src/**/*.ts",
+    "build": "rollup --config rollup.config.iife.js && rollup --config rollup.config.es.js",
+    "prepack": "node .github/cleanse-pkg"
   },
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@types/json5": "^0.0.30",
     "@types/lodash-es": "^4.17.1",
