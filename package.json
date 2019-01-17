@@ -28,8 +28,7 @@
     "watch": "rollup -w --config rollup.config.iife.js",
     "lint": "tslint src/**/*.ts",
     "build": "rollup --config rollup.config.iife.js && rollup --config rollup.config.es.js",
-    "release": "npx semantic-release",
-    "postpack": "node .github/postpack"
+    "postpack": "node .scripts/postpack"
   },
   "files": [
     "dist",
