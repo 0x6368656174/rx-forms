@@ -7,7 +7,7 @@ before_script:
 - npm install --no-save semantic-release @semantic-release/git @semantic-release/npm
   @semantic-release/changelog fs-extra tar
 script:
-- npm runt lint
+- npm run lint
 before_deploy:
 - npm run build
 deploy:
