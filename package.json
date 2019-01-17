@@ -5,6 +5,7 @@
   "main": "rx-forms.iife.js",
   "module": "rx-forms.es6.js",
   "types": "types/index.d.ts",
+  "private": false,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/0x6368656174/rx-forms.git"

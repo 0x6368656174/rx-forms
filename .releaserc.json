@@ -15,6 +15,15 @@
       }
     ],
     [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "dist/rx-forms.es6.js", "label": "ES6 rx-forms module" },
+          { "path": "dist/rx-forms.iife.js", "label": "IIFE rx-forms module" }
+        ]
+      }
+    ],
+    [
       "@semantic-release/git",
       {
         "assets": ["CHANGELOG.md"]
