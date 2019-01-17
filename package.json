@@ -8,6 +8,9 @@
   "repository": "https://github.com/it-quasar/reactive-forms.git",
   "author": "Pavel Puchkov <0x6368656174@gmail.com>",
   "license": "LGPL-3.0-only",
+  "scripts": {
+    "watch": "rollup -w --config rollup.config.iife.js"
+  },
   "devDependencies": {
     "@types/json5": "^0.0.30",
     "@types/lodash-es": "^4.17.1",

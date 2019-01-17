@@ -4,6 +4,7 @@ import { distinctUntilChanged, map, shareReplay, takeUntil } from 'rxjs/operator
 import {
   checkControlRequiredAttributes,
   Control,
+  ControlAttributes,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
@@ -41,11 +42,21 @@ function throwAttributeMultipleNotSupported(): Error {
   );
 }
 
-type RxSelectPrivate = ControlBehaviourSubjects<string>;
+interface RxSelectPrivate extends ControlBehaviourSubjects {
+  readonly value$: BehaviorSubject<string>;
+}
 
 const privateData: WeakMap<RxSelect, RxSelectPrivate> = new WeakMap();
 
 function createPrivate(instance: RxSelect): RxSelectPrivate {
+  // Для селекта нужно иницировать опции
+  const selected = instance.querySelector('option:checked');
+
+  let value = '';
+  if (selected && selected instanceof HTMLOptionElement) {
+    value = selected.value;
+  }
+
   const data = {
     disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
@@ -55,7 +66,7 @@ function createPrivate(instance: RxSelect): RxSelectPrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<string>(instance.value),
+    value$: new BehaviorSubject<string>(value),
   };
 
   privateData.set(instance, data);
@@ -88,7 +99,11 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   static readonly tagName: string = Elements.RxSelect;
 
   /** @internal */
-  static readonly observedAttributes = [...controlObservedAttributes, RxSelectAttributes.Multiple];
+  static readonly observedAttributes = [
+    ...controlObservedAttributes,
+    ControlAttributes.Value,
+    RxSelectAttributes.Multiple,
+  ];
 
   readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
@@ -122,7 +137,6 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -132,6 +146,11 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxEnabled = observables.rxEnabled;
     this.rxDisabled = observables.rxDisabled;
+
+    this.rxValue = data.value$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     this.rxSet = this.rxValue.pipe(
       map(value => value.length !== 0),
@@ -236,6 +255,9 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
     }
 
     switch (name) {
+      case ControlAttributes.Value:
+        getPrivate(this).value$.next(newValue || '');
+        break;
       case RxSelectAttributes.Multiple:
         if (newValue !== null) {
           throw throwAttributeMultipleNotSupported();

@@ -10,6 +10,7 @@ import { maxLength, minLength, pattern, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,
+  ControlAttributes,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
@@ -60,13 +61,13 @@ function subscribeToValueChanges(control: RxInputText): void {
   combineLatest(onInput$, textInputMaskElement$)
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(([_, textInputMaskElement]) => {
-      if (textInputMaskElement === null) {
-        data.value$.next(control.value);
-        return;
+      if (textInputMaskElement !== null) {
+        textInputMaskElement.update(control.value);
       }
 
-      textInputMaskElement.update(control.value);
-      data.value$.next(control.value);
+      if (data.value$.getValue() !== control.value) {
+        data.value$.next(control.value);
+      }
     });
 }
 
@@ -97,6 +98,15 @@ function setValidators(control: RxInputText): void {
 }
 
 function subscribeToAttributeObservables(control: RxInputText): void {
+  getPrivate(control)
+    .value$.asObservable()
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(value => {
+      if (control.value !== value) {
+        updateAttribute(control, ControlAttributes.Value, value);
+      }
+    });
+
   control.rxMask.pipe(takeUntil(control.rxDisconnected)).subscribe(mask => {
     const stringMask = mask ? mask.map(element => `'${element.toString()}'`).join(', ') : null;
     updateAttribute(control, RxInputTextAttributes.Mask, stringMask ? `[${stringMask}]` : null);
@@ -158,7 +168,7 @@ function stringToRegExp(stringRegExp: string): RegExp {
   }
 }
 
-interface RxInputTextPrivate extends ControlBehaviourSubjects<string> {
+interface RxInputTextPrivate extends ControlBehaviourSubjects {
   readonly value$: BehaviorSubject<string>;
   readonly mask$: BehaviorSubject<Array<string | RegExp> | null>;
   readonly pattern$: BehaviorSubject<RegExp | null>;
@@ -182,7 +192,7 @@ function createPrivate(instance: RxInputText): RxInputTextPrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<string>(instance.value),
+    value$: new BehaviorSubject<string>(''),
   };
 
   privateData.set(instance, data);
@@ -218,6 +228,7 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
+    ControlAttributes.Value,
     RxInputTextAttributes.Pattern,
     RxInputTextAttributes.Mask,
     RxInputTextAttributes.MaxLength,
@@ -269,7 +280,6 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -307,6 +317,11 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
+
+    this.rxValue = data.value$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     this.rxSet = this.rxValue.pipe(
       map(value => value.length !== 0),
@@ -355,7 +370,6 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
 
   setValue(value: string): void {
     getPrivate(this).value$.next(value);
-    this.value = value;
     this.markAsDirty();
   }
 
@@ -417,9 +431,9 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
   }
 
   /**
-   * Устанавливает паттер для валидации
+   * Устанавливает паттерн для валидации
    *
-   * @param regExp Паттер для валидации
+   * @param regExp Паттерн для валидации
    */
   setPattern(regExp: RegExp | null) {
     getPrivate(this).pattern$.next(regExp);
@@ -443,12 +457,35 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
     getPrivate(this).minLength$.next(length);
   }
 
+  /** Возвращает маску */
+  getMask(): Array<string | RegExp> | null {
+    return getPrivate(this).mask$.getValue();
+  }
+
+  /** Возвращает паттерн */
+  getPattern(): RegExp | null {
+    return getPrivate(this).pattern$.getValue();
+  }
+
+  /** Возвращает максимальную длину */
+  getMaxLength(): number | null {
+    return getPrivate(this).maxLength$.getValue();
+  }
+
+  /** Возвращает минимальную длину */
+  getMinLength(): number | null {
+    return getPrivate(this).minLength$.getValue();
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
     }
 
     switch (name) {
+      case ControlAttributes.Value:
+        getPrivate(this).value$.next(newValue || '');
+        break;
       case RxInputTextAttributes.Mask:
         this.setMask(newValue !== null ? maskStringToArray(newValue) : null);
         break;

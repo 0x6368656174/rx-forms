@@ -19,22 +19,31 @@ import {
 import { Elements } from './elements';
 import { updateAttribute } from './utils';
 
+enum RxInputCheckboxAttributes {
+  Checked = 'checked',
+}
+
 function subscribeToValueChanges(control: RxInputCheckbox): void {
   const data = getPrivate(control);
 
   fromEvent(control, 'change')
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      data.value$.next(control.checked);
+      if (data.checked$.getValue() !== control.checked) {
+        data.checked$.next(control.checked);
+      }
     });
 }
 
-type RxInputCheckboxPrivate = ControlBehaviourSubjects<boolean>;
+interface RxInputCheckboxPrivate extends ControlBehaviourSubjects {
+  checked$: BehaviorSubject<boolean>;
+}
 
 const privateData: WeakMap<RxInputCheckbox, RxInputCheckboxPrivate> = new WeakMap();
 
 function createPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
   const data = {
+    checked$: new BehaviorSubject<boolean>(false),
     disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
     name$: new BehaviorSubject<string>(''),
@@ -43,7 +52,6 @@ function createPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<boolean>(instance.checked),
   };
 
   privateData.set(instance, data);
@@ -60,8 +68,20 @@ function getPrivate(instance: RxInputCheckbox): RxInputCheckboxPrivate {
   return data;
 }
 
+function subscribeToAttributeObservables(control: RxInputCheckbox): void {
+  getPrivate(control)
+    .checked$.asObservable()
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(checked => {
+      if (control.checked !== checked) {
+        updateAttribute(control, RxInputCheckboxAttributes.Checked, checked ? '' : null);
+      }
+    });
+}
+
 function subscribeToObservables(control: RxInputCheckbox): void {
   subscribeToValueChanges(control);
+  subscribeToAttributeObservables(control);
 
   fromEvent(control, 'blur')
     .pipe(takeUntil(control.rxDisconnected))
@@ -76,7 +96,7 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   static readonly tagName: string = Elements.RxInputCheckbox;
 
   /** @internal */
-  static readonly observedAttributes = controlObservedAttributes;
+  static readonly observedAttributes = [...controlObservedAttributes, RxInputCheckboxAttributes.Checked];
 
   readonly rxDirty: Observable<boolean>;
   readonly rxDisconnected: Observable<void>;
@@ -106,7 +126,6 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -116,6 +135,11 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxEnabled = observables.rxEnabled;
     this.rxDisabled = observables.rxDisabled;
+
+    this.rxValue = data.checked$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     this.rxSet = this.rxValue.pipe(
       distinctUntilChanged(isEqual),
@@ -160,8 +184,7 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   }
 
   setValue(checked: boolean): void {
-    getPrivate(this).value$.next(checked);
-    updateAttribute(this, 'checked', checked ? '' : null);
+    getPrivate(this).checked$.next(checked);
     this.markAsDirty();
   }
 
@@ -178,7 +201,7 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   }
 
   getValue(): boolean {
-    return getPrivate(this).value$.getValue();
+    return getPrivate(this).checked$.getValue();
   }
 
   isRequired(): boolean {
@@ -218,7 +241,14 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
       return;
     }
 
-    updateControlAttributesBehaviourSubjects(this, name, RxInputCheckbox.tagName, newValue);
+    switch (name) {
+      case RxInputCheckboxAttributes.Checked:
+        getPrivate(this).checked$.next(newValue !== null);
+        break;
+      default:
+        updateControlAttributesBehaviourSubjects(this, name, RxInputCheckbox.tagName, newValue);
+        break;
+    }
   }
 
   /** @internal */

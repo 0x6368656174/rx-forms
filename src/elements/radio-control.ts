@@ -1,4 +1,6 @@
+import isEqual from 'lodash-es/isEqual';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 import {
   Control,
   ControlBehaviourSubjects,
@@ -8,7 +10,9 @@ import {
   ValidatorsMap,
 } from './control';
 
-type RadioControlPrivate = ControlBehaviourSubjects<string | null>;
+interface RadioControlPrivate extends ControlBehaviourSubjects {
+  readonly value$: BehaviorSubject<string | null>;
+}
 
 const privateData: WeakMap<RadioControl, RadioControlPrivate> = new WeakMap();
 
@@ -72,7 +76,6 @@ export class RadioControl implements Control<string | null> {
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -80,9 +83,19 @@ export class RadioControl implements Control<string | null> {
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
-    this.rxSet = observables.rxSet;
     this.rxEnabled = observables.rxEnabled;
     this.rxDisabled = observables.rxDisabled;
+
+    this.rxValue = data.value$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
+
+    this.rxSet = this.rxValue.pipe(
+      map(value => value !== null),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
   }
 
   markAsDirty(): void {

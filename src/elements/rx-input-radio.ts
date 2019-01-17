@@ -3,6 +3,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
 import {
   checkControlRequiredAttributes,
   Control,
+  ControlAttributes,
   controlObservedAttributes,
   subscribeToControlObservables,
   unsubscribeFromObservables,
@@ -81,7 +82,7 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
   static readonly tagName: string = Elements.RxInputRadio;
 
   /** @internal */
-  static readonly observedAttributes = controlObservedAttributes;
+  static readonly observedAttributes = [...controlObservedAttributes, ControlAttributes.Value];
 
   readonly rxDisconnected: Observable<void>;
   readonly rxDirty: Observable<boolean>;
@@ -236,7 +237,6 @@ export class RxInputRadio extends HTMLInputElement implements Control<string | n
     }
 
     if (this.checked) {
-      console.log(this.checked);
       newControl.setValue(this.value);
     }
 

@@ -119,7 +119,8 @@ function bindControlObservablesToClass(element: HTMLElement, tagName: string, ob
   });
 }
 
-enum ControlAttributes {
+export enum ControlAttributes {
+  Value = 'value',
   Name = 'name',
   Readonly = 'readonly',
   Required = 'required',
@@ -310,30 +311,24 @@ export function updateControlAttributesBehaviourSubjects<T>(
   }
 }
 
-export interface ControlBehaviourSubjects<T>
-  extends ControlAttributesBehaviorSubjects,
-    WithValidators,
-    WithDisconnected {
-  value$: BehaviorSubject<T>;
+export interface ControlBehaviourSubjects extends ControlAttributesBehaviorSubjects, WithValidators, WithDisconnected {
   pristine$: BehaviorSubject<boolean>;
   untouched$: BehaviorSubject<boolean>;
 }
 
-export interface ControlObservables<T>
+export interface ControlObservables
   extends ControlClassObservables,
     ControlAttributeObservables,
-    ControlValidatorObservables,
-    WithValue<T> {
+    ControlValidatorObservables {
   rxDisconnected: Observable<void>;
   rxPristine: Observable<boolean>;
   rxUntouched: Observable<boolean>;
   rxInvalid: Observable<boolean>;
   rxValidationErrors: Observable<string[]>;
-  rxSet: Observable<boolean>;
   rxEnabled: Observable<boolean>;
 }
 
-export function createControlObservables<T>(behaviourSubjects: ControlBehaviourSubjects<T>): ControlObservables<T> {
+export function createControlObservables(behaviourSubjects: ControlBehaviourSubjects): ControlObservables {
   const rxPristine = behaviourSubjects.pristine$.asObservable();
   const rxDirty = rxPristine.pipe(map(value => !value));
   const rxUntouched = behaviourSubjects.untouched$.asObservable();
@@ -389,18 +384,7 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
     shareReplay(1),
   );
 
-  const rxValue = behaviourSubjects.value$.asObservable().pipe(
-    distinctUntilChanged(isEqual),
-    shareReplay(1),
-  );
-
   const rxDisconnected = behaviourSubjects.disconnected$.asObservable();
-
-  const rxSet = rxValue.pipe(
-    map(value => value !== null),
-    distinctUntilChanged(isEqual),
-    shareReplay(1),
-  );
 
   return {
     rxDirty,
@@ -412,16 +396,14 @@ export function createControlObservables<T>(behaviourSubjects: ControlBehaviourS
     rxPristine,
     rxReadonly,
     rxRequired,
-    rxSet,
     rxTouched,
     rxUntouched,
     rxValid,
     rxValidationErrors,
-    rxValue,
   };
 }
 
-export interface Control<T> extends ControlObservables<T> {
+export interface Control<T> extends ControlObservables, WithValue<T> {
   /** Значение контрола */
   readonly rxValue: Observable<T>;
   /** Признак того, что поле доступно для редактирования */

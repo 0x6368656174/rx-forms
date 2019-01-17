@@ -5,6 +5,7 @@ import { maxNumber, minNumber, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,
+  ControlAttributes,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
@@ -35,13 +36,15 @@ function subscribeToValueChanges(control: RxInputRange): void {
   merge(fromEvent(control, 'change'), fromEvent(control, 'input'))
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      const value: number = Number(control.value);
-
-      data.value$.next(value);
+      if (data.value$.getValue() !== control.value) {
+        data.value$.next(control.value);
+      }
     });
 }
 
-interface RxInputRangePrivate extends ControlBehaviourSubjects<number> {
+interface RxInputRangePrivate extends ControlBehaviourSubjects {
+  value: number;
+  readonly value$: BehaviorSubject<string>;
   readonly max$: BehaviorSubject<number | null>;
   readonly min$: BehaviorSubject<number | null>;
 }
@@ -60,7 +63,8 @@ function createPrivate(instance: RxInputRange): RxInputRangePrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<number>(Number(instance.value)),
+    value: 0,
+    value$: new BehaviorSubject<string>(''),
   };
 
   privateData.set(instance, data);
@@ -102,6 +106,15 @@ function setValidators(control: RxInputRange): void {
 }
 
 function subscribeToAttributeObservables(control: RxInputRange): void {
+  getPrivate(control)
+    .value$.asObservable()
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(value => {
+      if (control.value !== value) {
+        updateAttribute(control, ControlAttributes.Value, value);
+      }
+    });
+
   control.rxMax.pipe(takeUntil(control.rxDisconnected)).subscribe(value => {
     updateAttribute(control, RxInputRangeAttributes.Max, value ? value.toString() : null);
   });
@@ -114,6 +127,9 @@ function subscribeToAttributeObservables(control: RxInputRange): void {
 function subscribeToObservables(control: RxInputRange): void {
   subscribeToValueChanges(control);
   subscribeToAttributeObservables(control);
+
+  const data = getPrivate(control);
+  control.rxValue.pipe(takeUntil(control.rxDisconnected)).subscribe(value => (data.value = value));
 
   fromEvent(control, 'blur')
     .pipe(takeUntil(control.rxDisconnected))
@@ -130,6 +146,7 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
+    ControlAttributes.Value,
     RxInputRangeAttributes.Max,
     RxInputRangeAttributes.Min,
   ];
@@ -171,7 +188,6 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -196,6 +212,14 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
+
+    this.rxValue = data.value$.asObservable().pipe(
+      map(originalValue => {
+        return originalValue ? Number(originalValue.replace(',', '.')) : null;
+      }),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     setValidators(this);
   }
@@ -237,8 +261,7 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   }
 
   setValue(value: number): void {
-    getPrivate(this).value$.next(value);
-    this.value = value.toString();
+    getPrivate(this).value$.next(value ? value.toString() : '');
     this.markAsDirty();
   }
 
@@ -255,7 +278,7 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   }
 
   getValue(): number {
-    return getPrivate(this).value$.getValue();
+    return getPrivate(this).value;
   }
 
   isRequired(): boolean {
@@ -308,12 +331,25 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
     getPrivate(this).min$.next(min);
   }
 
+  /** Возвращает максимальное значение */
+  getMax(): number | null {
+    return getPrivate(this).max$.getValue();
+  }
+
+  /** Возвращает минимальное значение */
+  getMin(): number | null {
+    return getPrivate(this).min$.getValue();
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
     }
 
     switch (name) {
+      case ControlAttributes.Value:
+        getPrivate(this).value$.next(newValue || '');
+        break;
       case RxInputRangeAttributes.Max: {
         const value = newValue ? Number(newValue.replace(',', '.')) : null;
         if (value !== null && Number.isNaN(value)) {

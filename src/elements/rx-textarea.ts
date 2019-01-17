@@ -43,7 +43,8 @@ function subscribeToValueChanges(control: RxTextarea): void {
     });
 }
 
-interface RxTextareaPrivate extends ControlBehaviourSubjects<string> {
+interface RxTextareaPrivate extends ControlBehaviourSubjects {
+  readonly value$: BehaviorSubject<string>;
   readonly maxLength$: BehaviorSubject<number | null>;
   readonly minLength$: BehaviorSubject<number | null>;
 }
@@ -167,7 +168,6 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -177,6 +177,11 @@ export class RxTextarea extends HTMLTextAreaElement implements Control<string> {
     this.rxValidationErrors = observables.rxValidationErrors;
     this.rxEnabled = observables.rxEnabled;
     this.rxDisabled = observables.rxDisabled;
+
+    this.rxValue = data.value$.asObservable().pipe(
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     this.rxMaxLength = getPrivate(this)
       .maxLength$.asObservable()

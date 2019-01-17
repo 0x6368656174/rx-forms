@@ -5,6 +5,7 @@ import { maxNumber, minNumber, Validators } from '../validators';
 import {
   checkControlRequiredAttributes,
   Control,
+  ControlAttributes,
   ControlBehaviourSubjects,
   controlConnectedCallback,
   controlDisconnectedCallback,
@@ -35,14 +36,15 @@ function subscribeToValueChanges(control: RxInputNumber): void {
   merge(fromEvent(control, 'change'), fromEvent(control, 'input'))
     .pipe(takeUntil(control.rxDisconnected))
     .subscribe(() => {
-      const controlValue: string | number = control.value.replace(',', '.');
-      const value: number | null = control.value ? Number(controlValue) : null;
-
-      data.value$.next(value);
+      if (data.value$.getValue() !== control.value) {
+        data.value$.next(control.value);
+      }
     });
 }
 
-interface RxInputNumberPrivate extends ControlBehaviourSubjects<number | null> {
+interface RxInputNumberPrivate extends ControlBehaviourSubjects {
+  value: number | null;
+  readonly value$: BehaviorSubject<string>;
   readonly max$: BehaviorSubject<number | null>;
   readonly min$: BehaviorSubject<number | null>;
 }
@@ -50,8 +52,6 @@ interface RxInputNumberPrivate extends ControlBehaviourSubjects<number | null> {
 const privateData: WeakMap<RxInputNumber, RxInputNumberPrivate> = new WeakMap();
 
 function createPrivate(instance: RxInputNumber): RxInputNumberPrivate {
-  const value: number | null = instance.value ? Number(instance.value.replace(',', '.')) : null;
-
   const data = {
     disabled$: new BehaviorSubject<boolean>(false),
     disconnected$: new Subject<void>(),
@@ -63,7 +63,8 @@ function createPrivate(instance: RxInputNumber): RxInputNumberPrivate {
     required$: new BehaviorSubject<boolean>(false),
     untouched$: new BehaviorSubject(true),
     validators$: new BehaviorSubject<ValidatorsMap>(new Map()),
-    value$: new BehaviorSubject<number | null>(value),
+    value: null,
+    value$: new BehaviorSubject<string>(''),
   };
 
   privateData.set(instance, data);
@@ -105,6 +106,15 @@ function setValidators(control: RxInputNumber): void {
 }
 
 function subscribeToAttributeObservables(control: RxInputNumber): void {
+  getPrivate(control)
+    .value$.asObservable()
+    .pipe(takeUntil(control.rxDisconnected))
+    .subscribe(value => {
+      if (control.value !== value) {
+        updateAttribute(control, ControlAttributes.Value, value);
+      }
+    });
+
   control.rxMax.pipe(takeUntil(control.rxDisconnected)).subscribe(value => {
     updateAttribute(control, RxInputNumberAttributes.Max, value ? value.toString() : null);
   });
@@ -117,6 +127,9 @@ function subscribeToAttributeObservables(control: RxInputNumber): void {
 function subscribeToObservables(control: RxInputNumber): void {
   subscribeToValueChanges(control);
   subscribeToAttributeObservables(control);
+
+  const data = getPrivate(control);
+  control.rxValue.pipe(takeUntil(control.rxDisconnected)).subscribe(value => (data.value = value));
 
   fromEvent(control, 'blur')
     .pipe(takeUntil(control.rxDisconnected))
@@ -133,6 +146,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   /** @internal */
   static readonly observedAttributes = [
     ...controlObservedAttributes,
+    ControlAttributes.Value,
     RxInputNumberAttributes.Max,
     RxInputNumberAttributes.Min,
   ];
@@ -174,7 +188,6 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     this.rxName = observables.rxName;
     this.rxReadonly = observables.rxReadonly;
     this.rxRequired = observables.rxRequired;
-    this.rxValue = observables.rxValue;
     this.rxPristine = observables.rxPristine;
     this.rxDirty = observables.rxDirty;
     this.rxUntouched = observables.rxUntouched;
@@ -182,7 +195,6 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     this.rxValid = observables.rxValid;
     this.rxInvalid = observables.rxInvalid;
     this.rxValidationErrors = observables.rxValidationErrors;
-    this.rxSet = observables.rxSet;
     this.rxEnabled = observables.rxEnabled;
     this.rxDisabled = observables.rxDisabled;
 
@@ -199,6 +211,20 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
         distinctUntilChanged(isEqual),
         shareReplay(1),
       );
+
+    this.rxValue = data.value$.asObservable().pipe(
+      map(originalValue => {
+        return originalValue ? Number(originalValue.replace(',', '.')) : null;
+      }),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
+
+    this.rxSet = this.rxValue.pipe(
+      map(value => value !== null),
+      distinctUntilChanged(isEqual),
+      shareReplay(1),
+    );
 
     setValidators(this);
   }
@@ -240,8 +266,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   }
 
   setValue(value: number | null): void {
-    getPrivate(this).value$.next(value);
-    this.value = value ? value.toString() : '';
+    getPrivate(this).value$.next(value ? value.toString() : '');
     this.markAsDirty();
   }
 
@@ -258,7 +283,7 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
   }
 
   getValue(): number | null {
-    return getPrivate(this).value$.getValue();
+    return getPrivate(this).value;
   }
 
   isRequired(): boolean {
@@ -311,12 +336,26 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     getPrivate(this).min$.next(min);
   }
 
+  /** Возвращает максимальное значение */
+  getMax(): number | null {
+    return getPrivate(this).max$.getValue();
+  }
+
+  /** Возвращает минимальное значение */
+  getMin(): number | null {
+    return getPrivate(this).min$.getValue();
+  }
+
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (newValue === oldValue) {
       return;
     }
 
     switch (name) {
+      case ControlAttributes.Value: {
+        getPrivate(this).value$.next(newValue || '');
+        break;
+      }
       case RxInputNumberAttributes.Max: {
         const value = newValue ? Number(newValue.replace(',', '.')) : null;
         if (value !== null && Number.isNaN(value)) {
