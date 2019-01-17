@@ -1,10 +1,10 @@
 {
   "name": "@it-quasar/rx-forms",
-  "version": "1.0.7",
+  "version": "1.0.0",
   "description": "Native RxJs forms",
-  "main": "dist/rx-forms.iife.js",
-  "module": "dist/rx-forms.es6.js",
-  "types": "dist/types/index.d.ts",
+  "main": "rx-forms.iife.js",
+  "module": "rx-forms.es6.js",
+  "types": "types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/0x6368656174/rx-forms.git"
@@ -28,13 +28,8 @@
     "watch": "rollup -w --config rollup.config.iife.js",
     "lint": "tslint src/**/*.ts",
     "build-iife": "rollup --config rollup.config.iife.js",
-    "build-es": "rollup --config rollup.config.es.js",
-    "postpack": "node .scripts/postpack"
+    "build-es": "rollup --config rollup.config.es.js"
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "devDependencies": {
     "@types/json5": "^0.0.30",
     "@types/lodash-es": "^4.17.1",
