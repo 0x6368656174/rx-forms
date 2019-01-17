@@ -9,7 +9,8 @@
   "author": "Pavel Puchkov <0x6368656174@gmail.com>",
   "license": "LGPL-3.0-only",
   "scripts": {
-    "watch": "rollup -w --config rollup.config.iife.js"
+    "watch": "rollup -w --config rollup.config.iife.js",
+    "lint": "tslint src/**/*.ts"
   },
   "devDependencies": {
     "@types/json5": "^0.0.30",
