@@ -5,25 +5,6 @@ workflow "Lint, Build, and Publish" {
   ]
 }
 
-action "Publish" {
-  needs = "Tag"
-  uses = "actions/npm@master"
-  args = "publish --access public"
-  secrets = ["GITHUB_TOKEN"]
-}
-
-action "Master" {
-  needs = "Build"
-  uses = "actions/bin/filter@master"
-  args = "branch master"
-}
-
-action "Tag" {
-  needs = "Master"
-  uses = "actions/bin/filter@master"
-  args = "tag"
-}
-
 action "Install" {
   uses = "actions/npm@master"
   args = "install"
@@ -39,4 +20,17 @@ action "Build" {
   needs = "Lint"
   uses = "actions/npm@master"
   args = "run build"
+}
+
+action "Master" {
+  needs = "Build"
+  uses = "actions/bin/filter@master"
+  args = "branch master"
+}
+
+action "Publish" {
+  needs = "Master"
+  uses = "actions/npm@master"
+  run = "semantic-release"
+  secrets = ["GITHUB_TOKEN", "NPM_TOKEN"]
 }
