@@ -5,14 +5,12 @@ cache: npm
 before_script:
 - npm install
 - npm install --no-save semantic-release @semantic-release/git @semantic-release/npm
-  @semantic-release/changelog
+  @semantic-release/changelog @semantic-release/github concurrently
 script:
 - npm run lint
 before_deploy:
-- npm run build-iife
-- npm run build-es
+- npx concurrently "npm:build-*"
 - node .scripts/prepublish
-- ls dist
 deploy:
 - provider: script
   script: npx semantic-release

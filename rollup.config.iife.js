@@ -5,7 +5,7 @@ import { terser } from "rollup-plugin-terser";
 const pkg = require('./package');
 
 config.output.push({
-  file: `${pkg.main}`,
+  file: `dist/${pkg.main}`,
   name: 'rxForms',
   format: 'iife',
 });

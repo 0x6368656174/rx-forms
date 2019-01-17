@@ -3,7 +3,7 @@ import config from './rollup.config.base';
 const pkg = require('./package');
 
 config.output.push({
-  file: `${pkg.module}`,
+  file: `dist/${pkg.module}`,
   format: 'es',
 });
 
