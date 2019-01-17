@@ -12,7 +12,7 @@ LABEL com.github.actions.color="red"
 
 RUN apt-get update
 RUN apt-get install -y git
-RUN npm install -g semantic-release @semantic-release/git @semantic-release/changelog fs-extra tar
+RUN npm install -g semantic-release @semantic-release/git @semantic-release/github @semantic-release/npm @semantic-release/changelog fs-extra tar
 
 COPY "entrypoint.sh" "/entrypoint.sh"
 ENTRYPOINT ["/entrypoint.sh"]
