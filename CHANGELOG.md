@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/0x6368656174/rx-forms/compare/v1.0.2...v1.0.3) (2019-01-17)
+
+
+### Bug Fixes
+
+* build ([effcd81](https://github.com/0x6368656174/rx-forms/commit/effcd81))
+
 ## [1.0.1](https://github.com/0x6368656174/rx-forms/compare/v1.0.0...v1.0.1) (2019-01-17)
 
 
