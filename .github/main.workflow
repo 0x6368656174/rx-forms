@@ -1,7 +1,8 @@
 workflow "Lint, Build, and Publish" {
   on = "push"
   resolves = [
-    "Publish"
+    "Master",
+    "Publish",
   ]
 }
 
@@ -29,7 +30,7 @@ action "Master" {
 }
 
 action "Publish" {
-  needs = "Master"
-  uses = "./action-publish"
+  uses = "./.github/action-publish"
+  needs = ["Master"]
   secrets = ["GITHUB_TOKEN", "NPM_TOKEN"]
 }
