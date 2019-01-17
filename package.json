@@ -27,7 +27,8 @@
   "scripts": {
     "watch": "rollup -w --config rollup.config.iife.js",
     "lint": "tslint src/**/*.ts",
-    "build": "rollup --config rollup.config.iife.js && rollup --config rollup.config.es.js",
+    "build-iife": "rollup --config rollup.config.iife.js",
+    "build-es": "rollup --config rollup.config.es.js",
     "postpack": "node .scripts/postpack"
   },
   "files": [
