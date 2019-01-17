@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/0x6368656174/rx-forms#readme",
   "author": "Pavel Puchkov <0x6368656174@gmail.com>",
-  "license": "LGPL-3.0-only",
+  "license": "LGPL-3.0-or-later",
   "keywords": [
     "rxjs",
     "form",
