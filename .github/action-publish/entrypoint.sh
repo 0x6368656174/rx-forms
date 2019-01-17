@@ -2,4 +2,4 @@
 
 set -e
 
-npx semantic-release
+sh -c "npx semantic-release"
