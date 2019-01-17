@@ -1,6 +1,6 @@
 {
   "name": "@it-quasar/rx-forms",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Native RxJs forms",
   "main": "dist/rx-forms.iife.js",
   "module": "dist/rx-forms.es6.js",
