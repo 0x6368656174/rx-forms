@@ -28,12 +28,12 @@
     "watch": "rollup -w --config rollup.config.iife.js",
     "lint": "tslint src/**/*.ts",
     "build": "rollup --config rollup.config.iife.js && rollup --config rollup.config.es.js",
+    "release": "npx semantic-release",
     "prepack": "node .github/cleanse-pkg"
   },
   "files": [
     "dist",
-    "README.md",
-    "CHANGELOG.md"
+    "README.md"
   ],
   "devDependencies": {
     "@semantic-release/changelog": "^3.0.2",

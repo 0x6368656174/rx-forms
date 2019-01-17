@@ -31,6 +31,6 @@ action "Master" {
 action "Publish" {
   needs = "Master"
   uses = "actions/npm@master"
-  run = "semantic-release"
+  args = "run release"
   secrets = ["GITHUB_TOKEN", "NPM_TOKEN"]
 }

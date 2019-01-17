@@ -16,9 +16,6 @@ delete pkgData.devDependencies;
 // Remove the husky section.
 delete pkgData.husky;
 
-// Remove the files section.
-delete pkgData.files;
-
 // Overwrite original `package.json` with new data (i.e. minus the specific data).
 fs.writeFile(ORIG_PKG_PATH, JSON.stringify(pkgData, null, 2), function (err) {
   if (err) throw err;
