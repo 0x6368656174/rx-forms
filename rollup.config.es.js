@@ -10,7 +10,6 @@ config.output.push({
 config.external.push(...[
   'rxjs',
   'rxjs/operators',
-  'luxon',
 ]);
 
 module.exports = config;
