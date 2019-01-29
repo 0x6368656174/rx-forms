@@ -8,6 +8,7 @@ import { findParentForm, findParentFormField, updateAttribute } from './utils';
 
 export type ValidatorsMap = Map<string, Observable<boolean>>;
 export type ValidatorsBehaviourSubject = BehaviorSubject<ValidatorsMap>;
+export type Writeable<T> = { -readonly [P in keyof T]-?: T[P] };
 
 /**
  * Проверяет, что все обязательные атрибуты для контрола установлены

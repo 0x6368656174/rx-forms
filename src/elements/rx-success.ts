@@ -1,7 +1,7 @@
 import isEqual from 'lodash-es/isEqual';
 import { combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
-import { Control } from './control';
+import { Control, Writeable } from './control';
 import { CustomElement } from './custom-element';
 import { Elements } from './elements';
 import { findParentFormField } from './utils';
@@ -38,8 +38,13 @@ export class RxSuccess extends HTMLElement implements CustomElement {
   /** Вызывается, когда элемент удален из DOM */
   readonly rxDisconnected: Observable<void>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxSuccess>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     const data = createPrivate(this);
 
@@ -51,6 +56,9 @@ export class RxSuccess extends HTMLElement implements CustomElement {
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     const parentFormField = findParentFormField(this);
 
     if (parentFormField) {

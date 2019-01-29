@@ -16,6 +16,7 @@ import {
   unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
+  Writeable,
 } from './control';
 import { Elements } from './elements';
 import { RxSelectMultiple } from './rx-select-multiple';
@@ -121,8 +122,13 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   readonly rxEnabled: Observable<boolean>;
   readonly rxDisabled: Observable<boolean>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxSelect>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     checkControlRequiredAttributes(this, RxSelect.tagName);
 
@@ -250,6 +256,9 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     if (newValue === oldValue) {
       return;
     }
@@ -272,6 +281,9 @@ export class RxSelect extends HTMLSelectElement implements Control<string> {
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxSelect.tagName);

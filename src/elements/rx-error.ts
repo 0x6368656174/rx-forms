@@ -1,7 +1,7 @@
 import isEqual from 'lodash-es/isEqual';
 import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap, takeUntil, withLatestFrom } from 'rxjs/operators';
-import { Control } from './control';
+import { Control, Writeable } from './control';
 import { CustomElement } from './custom-element';
 import { Elements } from './elements';
 import { findParentFormField, updateAttribute } from './utils';
@@ -63,8 +63,13 @@ export class RxError extends HTMLElement implements CustomElement {
   /** Вызывается, когда элемент удален из DOM */
   readonly rxDisconnected: Observable<void>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxError>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     if (!this.hasAttribute(RxErrorAttributes.Validator)) {
       throw throwAttributeValidatorRequired();
@@ -94,6 +99,9 @@ export class RxError extends HTMLElement implements CustomElement {
 
   /** @internal */
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     if (newValue === oldValue) {
       return;
     }
@@ -111,6 +119,9 @@ export class RxError extends HTMLElement implements CustomElement {
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     const parentFormField = findParentFormField(this);
 
     if (parentFormField) {

@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <title>Test</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker/dist/css/datepicker.min.css">
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">-->
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker/dist/css/datepicker.min.css">-->
     <style>
         .rx-input-text--touched.rx-input-text--invalid {
             border-color: red;
@@ -233,26 +233,29 @@
     <button is="rx-submit" type="button">Отправить</button>
 </form>
 
-<div>
-    Радио 2
-    <label>
-        <input is="rx-input-radio" type="radio" name="radio-2" value="value-1" required>
+<!--<div>-->
+    <!--Радио 2-->
+    <!--<label>-->
+        <!--<input is="rx-input-radio" type="radio" name="radio-2" value="value-1" required>-->
 
-        Радио 1
-    </label>
+        <!--Радио 1-->
+    <!--</label>-->
 
-    <label>
-        <input is="rx-input-radio" type="radio" name="radio-2" value="value-2" readonly checked>
+    <!--<label>-->
+        <!--<input is="rx-input-radio" type="radio" name="radio-2" value="value-2" readonly checked>-->
 
-        Радио 2
-    </label>
-</div>
+        <!--Радио 2-->
+    <!--</label>-->
+<!--</div>-->
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/air-datepicker/dist/js/datepicker.min.js"></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>-->
+<!--<script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/luxon/build/global/luxon.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/air-datepicker/dist/js/datepicker.min.js"></script>-->
+<script src="https://unpkg.com/@ungap/custom-elements-builtin"></script>
+<!--<script src="https://unpkg.com/@webcomponents/custom-elements"></script>-->
+<!--<script src="https://unpkg.com/@webcomponents/webcomponentsjs/webcomponents-bundle.js"></script>-->
 <script src="./dist/rx-forms.iife.js"></script>
 <script>
     // document.querySelector('input[name="phone"]').rxValue.subscribe(v => console.log(`Phone value: ${v}`));
@@ -264,23 +267,23 @@
     //
     // document.querySelector('input[name="date"]').rxValue.subscribe(v => console.log(`Date value: ${v}`));
     // document.querySelector('input[name="date"]').rxValid.subscribe(v => console.log(`Date valid: ${v}`));
-    const dateInput = document.querySelector('input[name="date"]');
+    // const dateInput = document.querySelector('input[name="date"]');
     // flatpickr(dateInput, {
     //   enableTime: true,
     //   dateFormat: 'd.m.Y, H:i',
     //   time_24hr: true,
     //   locale: 'ru',
     // });
-    $(dateInput).datepicker({
-      timepicker: true,
-      dateFormat: 'dd.mm.yyyy',
-      dateTimeSeparator: ', ',
-      timeFormat: 'hh:ii',
-      onSelect: (_, date) => {
-        const dateTime = date ? luxon.DateTime.fromJSDate(date) : null;
-        dateInput.setValue(dateTime);
-      }
-    });
+    // $(dateInput).datepicker({
+    //   timepicker: true,
+    //   dateFormat: 'dd.mm.yyyy',
+    //   dateTimeSeparator: ', ',
+    //   timeFormat: 'hh:ii',
+    //   onSelect: (_, date) => {
+    //     const dateTime = date ? luxon.DateTime.fromJSDate(date) : null;
+    //     dateInput.setValue(dateTime);
+    //   }
+    // });
     //
     // document.querySelector('input[name="checkbox"]').rxValue.subscribe(v => console.log(`Checkbox value: ${v}`));
     // document.querySelector('input[name="checkbox"]').rxValid.subscribe(v => console.log(`Checkbox valid: ${v}`));

@@ -1,7 +1,7 @@
 import isEqual from 'lodash-es/isEqual';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { distinctUntilChanged, shareReplay } from 'rxjs/operators';
-import { Control } from './control';
+import { Control, Writeable } from './control';
 import { Elements } from './elements';
 
 interface RxFormFieldPrivate<T> {
@@ -45,8 +45,13 @@ export class RxFormField<T> extends HTMLElement {
   /** Вызывается, когда элемент удален из DOM */
   readonly rxDisconnected: Observable<void>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxFormField<T>>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     const data = createPrivate(this);
 
@@ -65,6 +70,12 @@ export class RxFormField<T> extends HTMLElement {
    */
   setControl(control: Control<T> | null) {
     getPrivate(this).control$.next(control);
+  }
+
+  /** @internal */
+  connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
   }
 
   /** @internal */

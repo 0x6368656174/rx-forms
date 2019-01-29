@@ -1,5 +1,6 @@
 import { fromEvent, Observable } from 'rxjs';
 import { mapTo } from 'rxjs/operators';
+import { Writeable } from './control';
 import { Elements } from './elements';
 import { RxForm } from './rx-form';
 import { findParentForm } from './utils';
@@ -30,14 +31,19 @@ export class RxSubmit extends HTMLButtonElement {
   /** Observable, который эмитирует новые значения при клике по кнопке */
   readonly rxClick: Observable<void>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxSubmit>): void {
+    if (this.rxClick) {
+      return;
+    }
 
     this.rxClick = fromEvent(this, 'click').pipe(mapTo(undefined));
   }
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     const parentForm = findParentForm(this);
     createDomPrivate(this, { parentForm });
 
@@ -48,6 +54,9 @@ export class RxSubmit extends HTMLButtonElement {
 
   /** @internal */
   disconnectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     const domData = getDomPrivate(this);
 
     if (domData.parentForm) {

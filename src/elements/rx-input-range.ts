@@ -17,6 +17,7 @@ import {
   unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
+  Writeable,
 } from './control';
 import { Elements } from './elements';
 import { updateAttribute } from './utils';
@@ -176,8 +177,13 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   readonly rxEnabled: Observable<boolean>;
   readonly rxDisabled: Observable<boolean>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxInputRange>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     checkControlRequiredAttributes(this, RxInputRange.tagName);
 
@@ -342,6 +348,9 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     if (newValue === oldValue) {
       return;
     }
@@ -376,6 +385,9 @@ export class RxInputRange extends HTMLInputElement implements Control<number> {
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputRange.tagName);

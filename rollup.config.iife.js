@@ -8,8 +8,9 @@ config.output.push({
   file: `dist/${pkg.main}`,
   name: 'rxForms',
   format: 'iife',
+  sourcemap: true,
 });
 
-config.plugins.push(terser());
+// config.plugins.push(terser());
 
 module.exports = config;

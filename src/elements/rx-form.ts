@@ -11,7 +11,7 @@ import {
   takeUntil,
   withLatestFrom,
 } from 'rxjs/operators';
-import { Control } from './control';
+import { Control, Writeable } from './control';
 import { Elements } from './elements';
 import { RxSubmit } from './rx-submit';
 
@@ -97,8 +97,13 @@ export class RxForm extends HTMLFormElement {
    */
   readonly rxSubmit: Observable<Values>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxForm>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     const data = createPrivate(this);
 
@@ -307,6 +312,9 @@ export class RxForm extends HTMLFormElement {
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     // Отключим отправку невалидной формы
     let valid = false;
 

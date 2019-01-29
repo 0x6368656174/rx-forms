@@ -15,6 +15,7 @@ import {
   unsubscribeFromObservables,
   updateControlAttributesBehaviourSubjects,
   ValidatorsMap,
+  Writeable,
 } from './control';
 import { Elements } from './elements';
 import { updateAttribute } from './utils';
@@ -114,8 +115,13 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   readonly rxEnabled: Observable<boolean>;
   readonly rxDisabled: Observable<boolean>;
 
-  constructor() {
-    super();
+  setup(this: Writeable<RxInputCheckbox>): void {
+    try {
+      getPrivate(this);
+      return;
+    } catch (e) {
+      // Приватных данных нет, поэтому создадим их
+    }
 
     checkControlRequiredAttributes(this, RxInputCheckbox.tagName);
 
@@ -237,6 +243,9 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
   }
 
   attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     if (newValue === oldValue) {
       return;
     }
@@ -253,6 +262,9 @@ export class RxInputCheckbox extends HTMLInputElement implements Control<boolean
 
   /** @internal */
   connectedCallback() {
+    // TODO: После того, как Safari научится поддерживать Custom Elements v1, убрать от сюда и добавить конструктор
+    this.setup();
+
     controlConnectedCallback(this);
 
     subscribeToControlObservables(this, this, RxInputCheckbox.tagName);
