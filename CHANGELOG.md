@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/0x6368656174/rx-forms/compare/v1.0.14...v1.1.0) (2019-01-29)
+
+
+### Features
+
+* Add Safari support with polyfill ([3c2c9c2](https://github.com/0x6368656174/rx-forms/commit/3c2c9c2))
+* Remove luxon dependence ([73e6463](https://github.com/0x6368656174/rx-forms/commit/73e6463))
+
 ## 1.0.14 (2019-01-17)
 
 ### Features
