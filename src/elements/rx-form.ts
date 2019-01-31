@@ -283,6 +283,13 @@ export class RxForm extends HTMLFormElement {
   }
 
   /**
+   * Возвращает все контролы
+   */
+  getControls(): Array<Control<any>> {
+    return getPrivate(this).controls$.getValue();
+  }
+
+  /**
    * Добавляет кнопку отправки
    *
    * @param button Кнопка
@@ -335,7 +342,6 @@ export class RxForm extends HTMLFormElement {
     data.submitButtons$
       .asObservable()
       .pipe(
-        switchMap(() => data.submitButtons$.asObservable()),
         switchMap(buttons => {
           const clicks$ = buttons.map(button => button.rxClick);
 
