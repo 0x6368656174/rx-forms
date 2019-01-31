@@ -26,7 +26,7 @@
     "html"
   ],
   "scripts": {
-    "watch": "rollup -w --config rollup.config.iife.js",
+    "start": "rollup -w --config rollup.config.iife.js",
     "lint": "tslint src/**/*.ts",
     "build-iife": "rollup --config rollup.config.iife.js",
     "build-es": "rollup --config rollup.config.es.js"

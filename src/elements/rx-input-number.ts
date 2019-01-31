@@ -398,6 +398,16 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
 
     subscribeToControlObservables(this, this, RxInputNumber.tagName);
     subscribeToObservables(this);
+
+    // Исправляем баг FF с автозаполнением
+    // При autocomplete="on" и начальным значением value="" FF запоминает данные между сессиями,
+    // вставляя старые введенные данные в форму, но не генерируя событие input.
+    // Поэтому сразу же после создания объекта, проверим, что значение изменилось и обновим, если изменилось
+    setTimeout(() => {
+      if (parseInt(this.value, 10) !== this.getValue()) {
+        this.setValue(parseInt(this.value, 10));
+      }
+    }, 0);
   }
 
   /** @internal */

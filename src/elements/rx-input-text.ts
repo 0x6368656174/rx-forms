@@ -534,6 +534,16 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
 
     subscribeToControlObservables(this, this, RxInputText.tagName);
     subscribeToObservables(this);
+
+    // Исправляем баг FF с автозаполнением
+    // При autocomplete="on" и начальным значением value="" FF запоминает данные между сессиями,
+    // вставляя старые введенные данные в форму, но не генерируя событие input.
+    // Поэтому сразу же после создания объекта, проверим, что значение изменилось и обновим, если изменилось
+    setTimeout(() => {
+      if (this.value !== this.getValue()) {
+        this.setValue(this.value);
+      }
+    }, 0);
   }
 
   /** @internal */
