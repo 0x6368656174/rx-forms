@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/0x6368656174/rx-forms/compare/v1.1.1...v1.2.0) (2019-01-31)
+
+
+### Features
+
+* Add rx-form method getControls ([97da9a0](https://github.com/0x6368656174/rx-forms/commit/97da9a0))
+
 ## [1.1.1](https://github.com/0x6368656174/rx-forms/compare/v1.1.0...v1.1.1) (2019-01-30)
 
 
