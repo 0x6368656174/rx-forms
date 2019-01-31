@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/0x6368656174/rx-forms/compare/v1.1.0...v1.1.1) (2019-01-30)
+
+
+### Bug Fixes
+
+* Fix required validator ([59f6e95](https://github.com/0x6368656174/rx-forms/commit/59f6e95))
+
 # [1.1.0](https://github.com/0x6368656174/rx-forms/compare/v1.0.14...v1.1.0) (2019-01-29)
 
 
