@@ -404,8 +404,9 @@ export class RxInputNumber extends HTMLInputElement implements Control<number | 
     // вставляя старые введенные данные в форму, но не генерируя событие input.
     // Поэтому сразу же после создания объекта, проверим, что значение изменилось и обновим, если изменилось
     setTimeout(() => {
-      if (parseInt(this.value, 10) !== this.getValue()) {
-        this.setValue(parseInt(this.value, 10));
+      const data = getPrivate(this);
+      if (this.value !== data.value$.getValue()) {
+        data.value$.next(this.value);
       }
     }, 0);
   }

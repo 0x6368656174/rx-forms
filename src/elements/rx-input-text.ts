@@ -540,8 +540,9 @@ export class RxInputText extends HTMLInputElement implements Control<string> {
     // вставляя старые введенные данные в форму, но не генерируя событие input.
     // Поэтому сразу же после создания объекта, проверим, что значение изменилось и обновим, если изменилось
     setTimeout(() => {
-      if (this.value !== this.getValue()) {
-        this.setValue(this.value);
+      const data = getPrivate(this);
+      if (this.value !== data.value$.getValue()) {
+        data.value$.next(this.value);
       }
     }, 0);
   }
