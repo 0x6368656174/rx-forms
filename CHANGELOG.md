@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/0x6368656174/rx-forms/compare/v1.2.1...v1.2.2) (2019-02-01)
+
+
+### Bug Fixes
+
+* FF autocomplete bug ([0998ff4](https://github.com/0x6368656174/rx-forms/commit/0998ff4))
+
 ## [1.2.1](https://github.com/0x6368656174/rx-forms/compare/v1.2.0...v1.2.1) (2019-02-01)
 
 
